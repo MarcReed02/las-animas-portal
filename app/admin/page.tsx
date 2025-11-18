@@ -1,111 +1,227 @@
-'use client'
+'use client';
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { FiSearch, FiRefreshCw, FiDownload, FiList, FiCalendar } from 'react-icons/fi'
+import React, { useEffect, useMemo, useState } from 'react';
+import { FiCalendar, FiDownload, FiList, FiRefreshCw, FiSearch } from 'react-icons/fi';
+
+import { formatRut } from '@/lib/rut';
+import { createClient } from '@/lib/supabase/client';
 
 type Solicitud = {
-  id: string
-  nombre: string
-  rut: string
-  correo: string
-  documento_url: string
-  estado: 'pendiente' | 'aprobado' | 'rechazado'
-  admin_responsable: string | null
-  created_at: string
-}
+  id: string;
+  nombre: string;
+  rut: string;
+  correo: string;
+  telefono: string | null;
+  direccion: string | null;
+  documento_url: string | null;
+  estado: 'pendiente' | 'aprobado' | 'rechazado';
+  admin_responsable: string | null;
+  fecha_solicitud: string | null;
+  created_at: string | null;
+};
 
-const ESTADOS: Array<{ key: Solicitud['estado'] | 'todas'; label: string }>
-  = [
-    { key: 'pendiente', label: 'Pendientes' },
-    { key: 'aprobado', label: 'Aprobadas' },
-    { key: 'rechazado', label: 'Rechazadas' },
-    { key: 'todas', label: 'Todas' },
-  ]
+const ESTADOS: Array<{ key: Solicitud['estado'] | 'todas'; label: string }> = [
+  { key: 'pendiente', label: 'Pendientes' },
+  { key: 'aprobado', label: 'Aprobadas' },
+  { key: 'rechazado', label: 'Rechazadas' },
+  { key: 'todas', label: 'Todas' },
+];
 
 export default function AdminSolicitudesPage() {
-  const supabase = createClient()
-  const [items, setItems] = useState<Solicitud[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [q, setQ] = useState('')
-  const [estado, setEstado] = useState<Solicitud['estado'] | 'todas'>('pendiente')
-  const [selected, setSelected] = useState<Solicitud | null>(null)
-  const [rechazo, setRechazo] = useState('')
+  const supabase = createClient();
+  const [items, setItems] = useState<Solicitud[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [estado, setEstado] = useState<Solicitud['estado'] | 'todas'>('pendiente');
+  const [docLoadingId, setDocLoadingId] = useState<string | null>(null);
+  const [docError, setDocError] = useState<string | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ id: string; top: number; left: number } | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ solicitud: Solicitud; estado: Solicitud['estado'] } | null>(null);
+  const DEFAULT_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_DOCUMENTS_BUCKET || 'documentos';
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   async function fetchData() {
-    setLoading(true)
-    setError(null)
+    console.log('[admin] 1. Iniciando fetchData...');
+    setLoading(true);
+    setError(null);
     try {
+      console.log('[admin] 2. Ejecutando query Supabase...');
       const { data, error } = await supabase
         .from('solicitudes_registro')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setItems((data as any) || [])
+        .select('id,nombre,rut,correo,telefono,direccion,documento_url,estado,admin_responsable,fecha_solicitud,created_at')
+        .order('fecha_solicitud', { ascending: false });
+
+      console.log('[admin] 3. Query completada');
+      console.log('[admin] 4. Error object:', error);
+      console.log('[admin] 5. Error message:', error?.message);
+      console.log('[admin] 6. Error code:', (error as any)?.code);
+      console.log('[admin] 7. Data length:', data?.length);
+
+      if (error) {
+        console.error('[admin] 8. Error completo:', JSON.stringify(error, null, 2));
+        console.error('[admin] detalles query', (error as any)?.details);
+        throw error;
+      }
+
+      console.log('[admin] 9. Solicitudes cargadas exitosamente:', data);
+      setItems((data as Solicitud[]) || []);
     } catch (e: any) {
-      setError(e.message)
+      console.error('[admin] 10. Catch error:', e);
+      console.error('[admin] 11. Stack trace:', e?.stack);
+      setError(e.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   const filtered = useMemo(() => {
-    const byEstado = estado === 'todas' ? items : items.filter(i => i.estado === estado)
-    const term = q.trim().toLowerCase()
-    if (!term) return byEstado
-    return byEstado.filter(i =>
-      i.nombre?.toLowerCase().includes(term) ||
-      i.rut?.toLowerCase().includes(term) ||
-      i.correo?.toLowerCase().includes(term)
-    )
-  }, [items, estado, q])
+    const byEstado = estado === 'todas' ? items : items.filter((i) => i.estado === estado);
+    const term = q.trim().toLowerCase();
+    if (!term) return byEstado;
+    return byEstado.filter(
+      (i) =>
+        i.nombre?.toLowerCase().includes(term) ||
+        i.rut?.toLowerCase().includes(term) ||
+        i.correo?.toLowerCase().includes(term),
+    );
+  }, [items, estado, q]);
 
-  async function aprobar(s: Solicitud) {
+  function fmtDate(iso?: string | null) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    const date = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(
+      d.getFullYear(),
+    ).slice(-2)}`;
+    const time = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    return `${date} - ${time}`;
+  }
+
+  function fmtRut(value?: string | null) {
+    if (!value) return '—';
+    return formatRut(value);
+  }
+
+  function resolveDocumentLocation(url?: string | null) {
+    if (!url) return null;
+    if (!url.includes('/')) {
+      return { bucket: DEFAULT_BUCKET, path: url };
+    }
+
     try {
-      setLoading(true)
-      const { data: userData } = await supabase.auth.getUser()
-      const adminId = userData.user?.id ?? null
-      const { error } = await supabase
-        .from('solicitudes_registro')
-        .update({ estado: 'aprobado', admin_responsable: adminId })
-        .eq('id', s.id)
-      if (error) throw error
-      // Nota: creación del usuario en auth/users requiere service role.
-      await fetchData()
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
+      const parsed = new URL(url);
+      const segments = parsed.pathname.split('/').filter(Boolean);
+      const objectIdx = segments.findIndex((seg) => seg === 'object');
+      if (objectIdx !== -1 && segments.length >= objectIdx + 3) {
+        const bucket = segments[objectIdx + 2];
+        const path = segments.slice(objectIdx + 3).join('/');
+        return { bucket, path };
+      }
+      return { bucket: DEFAULT_BUCKET, path: segments.join('/') };
+    } catch {
+      const clean = url.replace(/^\/+/, '');
+      return { bucket: DEFAULT_BUCKET, path: clean };
     }
   }
 
-  async function rechazar(s: Solicitud) {
+  async function openDocument(documentUrl: string | null, id: string) {
+    if (!documentUrl) {
+      setDocError('Documento no disponible.');
+      return;
+    }
     try {
-      setLoading(true)
-      const { data: userData } = await supabase.auth.getUser()
-      const adminId = userData.user?.id ?? null
-      const { error } = await supabase
-        .from('solicitudes_registro')
-        .update({ estado: 'rechazado', admin_responsable: adminId })
-        .eq('id', s.id)
-      if (error) throw error
-      await fetchData()
-      setRechazo('')
+      setDocError(null);
+      setDocLoadingId(id);
+      const location = resolveDocumentLocation(documentUrl);
+      if (!location?.path) {
+        throw new Error('Ruta de documento inválida.');
+      }
+      const params = new URLSearchParams({
+        bucket: location.bucket,
+        path: location.path,
+      });
+      const res = await fetch(`/api/documents/sign?${params.toString()}`);
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload?.error || 'No se pudo obtener el documento.');
+      }
+      const { signedUrl } = await res.json();
+      if (!signedUrl) throw new Error('No se obtuvo un enlace firmado.');
+      window.open(signedUrl, '_blank', 'noopener,noreferrer');
     } catch (e: any) {
-      setError(e.message)
+      console.error('[admin] error al abrir documento', e);
+      setDocError(e?.message || 'No se pudo abrir el documento.');
     } finally {
-      setLoading(false)
+      setDocLoadingId(null);
     }
   }
 
-  function fmtDate(iso: string) {
-    const d = new Date(iso)
-    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
+  function closeMenu() {
+    setMenuAnchor(null);
+  }
+
+  function toggleMenu(event: React.MouseEvent<HTMLButtonElement>, id: string) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const top = rect.bottom + window.scrollY + 8;
+    const left = rect.right + window.scrollX - 220;
+    setMenuAnchor((current) => (current?.id === id ? null : { id, top, left }));
+  }
+
+  async function updateSolicitudEstado(s: Solicitud, nuevoEstado: Solicitud['estado']) {
+    try {
+      if (s.estado !== 'pendiente') {
+        setDocError('La solicitud ya fue gestionada. No es posible cambiar su estado.');
+        return;
+      }
+      setActionLoadingId(s.id);
+      setDocError(null);
+      if (nuevoEstado === 'aprobado') {
+        console.log('[admin] llamando a /api/auth/create-user', { solicitudId: s.id });
+        const emailIntentado = s.correo || null;
+        const response = await fetch('/api/auth/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ solicitudId: s.id }),
+        });
+        let payload: any = null;
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
+        if (!response.ok) {
+          console.error('[admin] ERROR COMPLETO AL CREAR USUARIO:', {
+            status: response.status,
+            statusText: response.statusText,
+            payload_completo: payload,
+            url: response.url,
+            email_intentado: emailIntentado,
+            timestamp: new Date().toISOString(),
+          });
+          throw new Error(payload?.error || 'No se pudo crear el usuario en Auth.');
+        }
+        console.log('[admin] usuario creado correctamente', payload);
+      }
+      const { data: userData } = await supabase.auth.getUser();
+      const adminId = userData?.user?.id ?? null;
+      const { error } = await supabase
+        .from('solicitudes_registro')
+        .update({ estado: nuevoEstado, admin_responsable: adminId || null })
+        .eq('id', s.id);
+      if (error) throw error;
+      await fetchData();
+    } catch (e: any) {
+      console.error('[admin] error al actualizar solicitud', e);
+      setDocError(e?.message || 'No se pudo actualizar la solicitud.');
+    } finally {
+      setActionLoadingId(null);
+      closeMenu();
+    }
   }
 
   return (
@@ -113,7 +229,10 @@ export default function AdminSolicitudesPage() {
       <header className="flex items-center justify-between">
         <h1 className="text-2xl md:text-3xl font-extrabold">Solicitudes de registro</h1>
         <div className="hidden md:flex items-center gap-2 text-white/80">
-          <button onClick={fetchData} className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 hover:bg-white/10">
+          <button
+            onClick={fetchData}
+            className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 hover:bg-white/10"
+          >
             <FiRefreshCw className="h-4 w-4" />
           </button>
           <button className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 hover:bg-white/10">
@@ -125,11 +244,10 @@ export default function AdminSolicitudesPage() {
         </div>
       </header>
 
-      {/* Tabs estado con contadores */}
       <div className="flex flex-wrap gap-3 rounded-full">
         {ESTADOS.map((t) => {
-          const count = t.key === 'todas' ? items.length : items.filter(i=>i.estado===t.key).length
-          const active = estado === t.key
+          const count = t.key === 'todas' ? items.length : items.filter((i) => i.estado === t.key).length;
+          const active = estado === t.key;
           return (
             <button
               key={t.key}
@@ -138,16 +256,14 @@ export default function AdminSolicitudesPage() {
                 active ? 'bg-white/10 border-white/20' : 'border-white/10 hover:bg-white/5'
               }`}
             >
-              <span className={t.key==='pendiente' ? 'text-red-600 font-semibold' : ''}>{count}</span> {t.label}
+              <span className={t.key === 'pendiente' ? 'text-red-600 font-semibold' : ''}>{count}</span> {t.label}
             </button>
-          )
+          );
         })}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Tabla */}
-        <div className="xl:col-span-2 bg-[#111111] border border-white/10 rounded-xl overflow-hidden shadow-lg">
-          {/* Filtros superiores */}
+      <div className="grid grid-cols-1 gap-6">
+        <div className="bg-[#111111] border border-white/10 rounded-xl overflow-hidden shadow-lg">
           <div className="p-3 flex flex-wrap gap-3 items-center border-b border-white/10 bg-black/20">
             <div className="relative flex-1 min-w-[220px]">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 h-4 w-4" />
@@ -160,7 +276,10 @@ export default function AdminSolicitudesPage() {
             </div>
             <div className="relative w-[220px]">
               <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 h-4 w-4" />
-              <input type="date" className="w-full rounded-xl bg-black/30 border border-white/10 pl-9 pr-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20" />
+              <input
+                type="date"
+                className="w-full rounded-xl bg-black/30 border border-white/10 pl-9 pr-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20"
+              />
             </div>
           </div>
 
@@ -173,39 +292,81 @@ export default function AdminSolicitudesPage() {
                   <th className="text-left font-normal px-4 py-4">Nombre</th>
                   <th className="text-left font-normal px-4 py-4">Correo</th>
                   <th className="text-left font-normal px-4 py-4 w-[140px]">Documento</th>
-                  <th className="text-left font-normal px-4 py-4">Tipo</th>
+                  <th className="text-left font-normal px-4 py-4">Teléfono</th>
+                  <th className="text-left font-normal px-4 py-4">Dirección</th>
                   <th className="text-left font-normal px-4 py-4">Estado</th>
+                  <th className="text-left font-normal px-4 py-4">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
-                  <tr><td className="px-4 py-6" colSpan={6}>Cargando...</td></tr>
+                  <tr>
+                    <td className="px-4 py-6" colSpan={8}>
+                      Cargando...
+                    </td>
+                  </tr>
                 )}
                 {!loading && filtered.length === 0 && (
-                  <tr><td className="px-4 py-6" colSpan={6}>Sin resultados</td></tr>
+                  <tr>
+                    <td className="px-4 py-6" colSpan={8}>
+                      Sin resultados
+                    </td>
+                  </tr>
                 )}
                 {filtered.map((s) => (
-                  <tr key={s.id} className={`border-t border-white/10 hover:bg-white/5 cursor-pointer ${selected?.id===s.id?'bg-white/5':''}`} onClick={() => setSelected(s)}>
-                    <td className="px-4 py-2 whitespace-nowrap">{fmtDate(s.created_at)}</td>
-                    <td className="px-4 py-2">{s.rut}</td>
+                  <tr key={s.id} className="border-t border-white/10 hover:bg-white/5">
+                    <td className="px-4 py-2 whitespace-nowrap">{fmtDate(s.fecha_solicitud ?? s.created_at)}</td>
+                    <td className="px-4 py-2">{fmtRut(s.rut)}</td>
                     <td className="px-4 py-2 font-medium">{s.nombre}</td>
                     <td className="px-4 py-2">{s.correo}</td>
                     <td className="px-4 py-2">
                       {s.documento_url ? (
-                        <div className="flex items-center gap-3">
-                          <a href={s.documento_url} target="_blank" className="text-blue-300 hover:underline" onClick={(e)=>e.stopPropagation()}>Ver</a>
-                          <a href={s.documento_url} target="_blank" className="text-white/70 hover:text-white" onClick={(e)=>e.stopPropagation()}>Descargar</a>
-                        </div>
+                        <button
+                          onClick={() => openDocument(s.documento_url, s.id)}
+                          disabled={docLoadingId === s.id}
+                          className="text-blue-300 hover:underline disabled:opacity-50"
+                        >
+                          {docLoadingId === s.id ? 'Abriendo...' : 'Ver'}
+                        </button>
                       ) : (
                         <span className="text-white/50">—</span>
                       )}
                     </td>
+                    <td className="px-4 py-2">{s.telefono ?? '—'}</td>
+                    <td className="px-4 py-2">{s.direccion ?? '—'}</td>
                     <td className="px-4 py-2">
-                      <span className={
-                        s.estado === 'pendiente' ? 'text-yellow-400' : s.estado === 'aprobado' ? 'text-green-400' : 'text-red-400'
-                      }>
-                        {s.estado.charAt(0).toUpperCase()+s.estado.slice(1)}
+                      <span
+                        className={
+                          s.estado === 'pendiente'
+                            ? 'inline-flex items-center gap-2 rounded-full border border-yellow-400/60 bg-yellow-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-yellow-300'
+                            : s.estado === 'aprobado'
+                            ? 'inline-flex items-center gap-2 rounded-full border border-green-400/60 bg-green-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-300'
+                            : 'inline-flex items-center gap-2 rounded-full border border-red-400/60 bg-red-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-300'
+                        }
+                      >
+                        <span
+                          className={
+                            s.estado === 'pendiente'
+                              ? 'h-2 w-2 rounded-full bg-yellow-300'
+                              : s.estado === 'aprobado'
+                              ? 'h-2 w-2 rounded-full bg-green-300'
+                              : 'h-2 w-2 rounded-full bg-red-300'
+                          }
+                        />
+                        {s.estado}
                       </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      {s.estado === 'pendiente' ? (
+                        <button
+                          onClick={(e) => toggleMenu(e, s.id)}
+                          className="rounded-full border border-white/15 px-3 py-1 text-sm text-white/80 hover:border-white/40 transition"
+                        >
+                          Acciones
+                        </button>
+                      ) : (
+                        <span className="text-white/40 text-sm">Sin acciones</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -213,9 +374,10 @@ export default function AdminSolicitudesPage() {
             </table>
           </div>
 
-          {/* Paginación placeholder */}
           <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 text-white/70 text-sm">
-            <div>Mostrando {filtered.length > 0 ? 1 : 0}–{Math.min(filtered.length, 10)} de {filtered.length}</div>
+            <div>
+              Mostrando {filtered.length > 0 ? 1 : 0}–{Math.min(filtered.length, 10)} de {filtered.length}
+            </div>
             <div className="flex items-center gap-2">
               <button className="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10">1</button>
               <button className="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10">2</button>
@@ -223,41 +385,91 @@ export default function AdminSolicitudesPage() {
             </div>
           </div>
         </div>
-
-        {/* Panel lateral */}
-        <div className="bg-[#111111] border border-white/10 rounded-xl p-4 shadow-lg">
-          {selected ? (
-            <div className="space-y-3">
-              <h3 className="text-xl font-bold">{selected.nombre}</h3>
-              <div className="text-white/80">{selected.rut}</div>
-              <div className="text-white/80">{selected.correo}</div>
-
-              <div className="mt-4">
-                <div className="text-white/80 text-sm mb-2">Documento</div>
-                {selected.documento_url ? (
-                  <a href={selected.documento_url} target="_blank" className="block rounded-md bg-black/30 border border-white/10 p-4 text-white/80 hover:bg-black/40">PDF</a>
-                ) : (
-                  <div className="rounded-md bg-black/30 border border-white/10 p-4 text-white/50">Sin documento</div>
-                )}
-              </div>
-
-              {selected.estado === 'pendiente' && (
-                <div className="space-y-3">
-                  <button onClick={() => aprobar(selected)} className="w-full bg-[#AC2734] hover:bg-[#C92F3F] text-white py-2 rounded-md font-semibold">Aprobar</button>
-                  <div>
-                    <textarea value={rechazo} onChange={(e)=>setRechazo(e.target.value)} placeholder="Motivo del rechazo" className="w-full rounded-md bg-black/20 border border-white/10 px-3 py-2 placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/20" rows={3} />
-                    <button onClick={() => rechazar(selected)} className="mt-2 w-full bg-white/10 hover:bg-white/15 text-white py-2 rounded-md">Rechazar</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-white/70">Selecciona una solicitud para ver detalles</div>
-          )}
-
-          {error && <div className="mt-4 text-red-400 text-sm">{error}</div>}
-        </div>
       </div>
+
+      
+      {menuAnchor &&
+        (() => {
+          const current = items.find((item) => item.id === menuAnchor.id);
+          if (!current) return null;
+          const left = Math.max(menuAnchor.left, 16);
+          return (
+            <>
+              <div className="fixed inset-0 z-30" onClick={closeMenu} />
+              <div
+                className="fixed z-40 min-w-[200px] rounded-2xl border border-white/10 bg-[#161616] p-2 text-sm shadow-2xl"
+                style={{ top: menuAnchor.top, left }}
+              >
+                <button
+                  onClick={() => {
+                    setPendingAction({ solicitud: current, estado: 'aprobado' });
+                    closeMenu();
+                  }}
+                  disabled={actionLoadingId === current.id}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-white/90 hover:bg-white/10 disabled:opacity-60"
+                >
+                  <span className="text-green-400">✓</span>
+                  {actionLoadingId === current.id ? 'Aceptando...' : 'Aceptar solicitud'}
+                </button>
+                <button
+                  onClick={() => {
+                    setPendingAction({ solicitud: current, estado: 'rechazado' });
+                    closeMenu();
+                  }}
+                  disabled={actionLoadingId === current.id}
+                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-white/90 hover:bg-white/10 disabled:opacity-60"
+                >
+                  <span className="text-red-400">✗</span>
+                  {actionLoadingId === current.id ? 'Rechazando...' : 'Rechazar solicitud'}
+                </button>
+              </div>
+            </>
+          );
+        })()}
+
+
+      {pendingAction && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#161616] p-6 text-white shadow-2xl">
+            <h3 className="text-xl font-semibold mb-2">Confirmar accion</h3>
+            <p className="text-sm text-white/80 mb-4">
+              Estas seguro de {pendingAction.estado === 'aprobado' ? 'aprobar' : 'rechazar'} la solicitud de{' '}
+              <span className="font-semibold">{pendingAction.solicitud.nombre}</span>? Esta accion no se puede deshacer.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setPendingAction(null)}
+                className="flex-1 rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white/80 hover:border-white/40"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const target = pendingAction;
+                  if (!target) return;
+                  updateSolicitudEstado(target.solicitud, target.estado);
+                  setPendingAction(null);
+                }}
+                disabled={actionLoadingId === pendingAction.solicitud.id}
+                className={pendingAction.estado === 'aprobado'
+                  ? 'flex-1 rounded-xl bg-green-500/80 px-4 py-2 text-sm font-semibold text-black hover:bg-green-500 disabled:opacity-60'
+                  : 'flex-1 rounded-xl bg-red-500/80 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60'}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {docError && (
+        <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">{docError}</div>
+      )}
+      {error && (
+        <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">
+          Error: {error}
+        </div>
+      )}
     </div>
-  )
+  );
 }

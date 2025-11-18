@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import React from 'react'
@@ -25,37 +25,36 @@ const NewsCard: React.FC<NewsCardProps> = ({
   const text = excerpt ?? ''
 
   return (
-    <article className={`w-full ${className}`}>
-      {/* Imagen con botón "LEER MÁS" superpuesto */}
-      <div className="relative w-full h-56 md:h-64 bg-gray-200 overflow-hidden rounded-md ring-1 ring-white/10">
+    <article
+      className={`max-w-7xl border border-transparent p-4 flex flex-col gap-6 ${className}`}
+    >
+      <div className="relative overflow-hidden rounded-[10px]">
         <img
           src={src}
           alt="Imagen de la noticia"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-full aspect-square object-cover"
           draggable={false}
         />
-
         {href ? (
           <Link
             href={href}
-            className="absolute left-3 bottom-3 inline-block bg-[#AC2734] hover:bg-[#C92F3F] active:bg-[#C92F3F] text-white text-xs font-semibold uppercase tracking-wide px-3 py-2 rounded-md transition-colors"
+            className="absolute left-4 bottom-4 inline-block bg-[#c21e1e] text-white text-base font-semibold uppercase tracking-wide px-4 py-2 rounded-[5px] shadow-md transition-opacity hover:opacity-95 active:opacity-90 [color:rgb(255,255,255)!important]"
           >
-            LEER MÁS
+            LEER MAS
           </Link>
         ) : (
-          <span className="absolute left-3 bottom-3 inline-block bg-[#AC2734] text-white text-xs font-semibold uppercase tracking-wide px-3 py-2 rounded-md">
-            LEER MÁS
+          <span className="absolute left-4 bottom-4 inline-block bg-[#c21e1e] text-white text-sm font-semibold uppercase tracking-wide px-4 py-2 rounded-md shadow-md [color:rgb(255,255,255)!important]">
+            LEER MAS
           </span>
         )}
       </div>
 
-      {/* Título y descripción */}
-      <h3 className="mt-4 text-white text-lg md:text-xl font-semibold">{title}</h3>
-      {text && (
-        <div className="mt-2 border-l-4 border-[#FFC531] pl-4 pb-2">
-          <p className="text-white/90 text-sm md:text-base leading-relaxed">{text}</p>
-        </div>
-      )}
+      <div className="flex flex-col gap-4">
+        <h3 className="text-white text-xl font-semibold leading-tight">{title}</h3>
+        {text && (
+          <p className="text-white/75 text-lg leading-relaxed">{text}</p>
+        )}
+      </div>
     </article>
   )
 }

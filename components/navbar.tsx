@@ -1,34 +1,135 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useTheme } from 'next-themes'
-import { FiSun, FiMoon } from 'react-icons/fi'
-import { usePathname } from 'next/navigation'
+import { useEffect, useMemo, useState, useRef } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { PiUserCircleFill } from "react-icons/pi";
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false)
-  const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  const pathname = usePathname()
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const supabase = useMemo(() => createClient(), []);
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setCurrentUser(data.user ?? null);
+      setCheckingSession(false);
+    });
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+    return () => {
+      mounted = false;
+      subscription.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleOutside = (event: MouseEvent) => {
+      if (!userMenuRef.current) return;
+      if (userMenuRef.current.contains(event.target as Node)) return;
+      setShowMenu(false);
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+    };
+  }, [showMenu]);
 
   const nav = [
-    { name: 'Contacto', href: '/contacto' },
-    { name: 'Nosotros', href: '/nosotros' },
-  ]
+    { name: "Contacto", href: "/contacto" },
+    { name: "Nosotros", href: "/nosotros" },
+  ];
 
-  const toggleTheme = () => setTheme((resolvedTheme === 'dark' ? 'light' : 'dark'))
+  const navBg = "bg-[#0B0B0B]/95 text-white";
+  const navLink = "text-sm text-white/90 hover:text-white transition-colors";
+  const loginBtn =
+    "text-sm px-3 py-1.5 rounded-full border border-white/30 hover:border-white/60 hover:text-white transition-colors";
+  const signupBtn = "text-sm px-3 py-1.5 rounded-full bg-[#c21e1e] text-white hover:bg-[#961111] transition-colors";
+  const menuButton =
+    "inline-flex items-center justify-center p-2 rounded-md focus:outline-none focus:ring-2 hover:bg-white/10 focus:ring-white/50";
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setCurrentUser(null);
+      setIsOpen(false);
+    } catch (error) {
+      console.error("[navbar] error al cerrar sesión", error);
+    }
+  };
+
+  const toggleMenu = () => setShowMenu((prev) => !prev);
+
+  const userAvatar = currentUser ? (
+    <div className="relative" ref={userMenuRef}>
+      <button
+        onClick={toggleMenu}
+        className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/90 hover:bg-white/10 transition"
+      >
+        <PiUserCircleFill className="h-6 w-6 text-white" />
+        <span className="hidden md:block font-semibold">{currentUser.email?.split("@")[0] || "Usuario"}</span>
+      </button>
+
+      {showMenu && (
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setShowMenu(false)} />
+          <div className="absolute right-0 z-[70] mt-2 w-56 rounded-2xl border border-white/15 bg-[#0B0B0B] p-3 text-sm text-white shadow-2xl">
+            <div className="mb-3 flex items-center gap-3 border-b border-white/10 pb-3">
+              <PiUserCircleFill className="h-6 w-6 text-white" />
+              <div className="flex flex-col text-xs text-white/70">
+                <span className="text-sm font-semibold text-white">{currentUser.email || "Usuario"}</span>
+                <span className="uppercase text-white/50">Sesión activa</span>
+              </div>
+            </div>
+            <Link
+              href="/protected/anuncios"
+              className="mb-2 block rounded-full border border-white/20 px-3 py-2 text-center text-white/90 hover:border-white/60 hover:bg-white/5"
+              onClick={() => setShowMenu(false)}
+            >
+              Mis anuncios
+            </Link>
+            <button
+              onClick={() => {
+                handleLogout();
+                setShowMenu(false);
+              }}
+              className="w-full rounded-full border border-white/25 px-3 py-2 text-white/90 hover:border-white/60"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  ) : (
+    <div className="flex items-center gap-2">
+      <Link href="/auth/login/ingresar" className={loginBtn}>
+        Log in
+      </Link>
+      <Link href="/auth/login" className={signupBtn}>
+        Sign up
+      </Link>
+    </div>
+  );
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#0B0B0B]/95 backdrop-blur supports-[backdrop-filter]:bg-[#0B0B0B]/80 text-white">
+    <nav className={`sticky top-0 z-50 backdrop-blur transition-colors ${navBg}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Brand */}
           <Link
             href="/"
-            className="text-xl font-extrabold tracking-wide"
+            className="text-xl font-extrabold tracking-wide text-white"
             onClick={(e) => {
               if (pathname === '/') {
                 e.preventDefault()
@@ -41,65 +142,23 @@ const Navbar = () => {
               }
             }}
           >
-            LAS ÁNIMAS
+            ANIMAS
           </Link>
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">
             {nav.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="text-sm text-white/90 hover:text-white transition-colors"
-              >
+              <Link key={item.name} href={item.href} className={navLink}>
                 {item.name}
               </Link>
             ))}
-            <Link
-              href="/auth/login"
-              className="text-sm px-3 py-1.5 rounded-md border border-white/30 hover:border-white/60 hover:text-white transition-colors"
-            >
-              Login
-            </Link>
-            <button
-              aria-label="Cambiar tema"
-              onClick={toggleTheme}
-              className="p-2 rounded-md hover:bg-white/10"
-            >
-              {mounted ? (
-                resolvedTheme === 'light' ? (
-                  <FiSun className="h-5 w-5" />
-                ) : (
-                  <FiMoon className="h-5 w-5" />
-                )
-              ) : (
-                <span className="block h-5 w-5" aria-hidden="true" />
-              )}
-            </button>
+            {!checkingSession && userAvatar}
           </div>
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2">
-            <button
-              aria-label="Cambiar tema"
-              onClick={toggleTheme}
-              className="p-2 rounded-md hover:bg-white/10"
-            >
-              {mounted ? (
-                resolvedTheme === 'light' ? (
-                  <FiSun className="h-5 w-5" />
-                ) : (
-                  <FiMoon className="h-5 w-5" />
-                )
-              ) : (
-                <span className="block h-5 w-5" aria-hidden="true" />
-              )}
-            </button>
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50"
-            >
-              <span className="sr-only">Abrir menú principal</span>
+            <button onClick={() => setIsOpen(!isOpen)} className={menuButton}>
+              <span className="sr-only">Abrir menu principal</span>
               {isOpen ? (
                 <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -122,19 +181,48 @@ const Navbar = () => {
               <Link
                 key={item.name}
                 href={item.href}
-                className="block px-2 py-2 rounded-md text-white/90 hover:text-white hover:bg-white/10"
+                className="block px-2 py-2 rounded-full text-white/90 hover:text-white hover:bg-white/10"
                 onClick={() => setIsOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
-            <Link
-              href="/auth/login"
-              className="block px-2 py-2 rounded-md border border-white/20 text-white/90 hover:text-white hover:bg-white/10"
-              onClick={() => setIsOpen(false)}
-            >
-              Login
-            </Link>
+            {!checkingSession ? (
+              currentUser ? (
+                <div className="flex flex-col gap-3 rounded-2xl border border-white/15 px-3 py-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-base font-semibold uppercase text-white">
+                    {(currentUser.email?.charAt(0) || "?").toUpperCase()}
+                  </div>
+                  <div className="flex flex-col text-sm text-white/80">
+                    <span className="font-semibold">Sesión iniciada</span>
+                    <span className="text-white/60">{currentUser.email}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="rounded-full border border-white/25 px-3 py-2 text-sm text-white/90 hover:border-white/60"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login/ingresar"
+                    className="block px-2 py-2 rounded-full border border-white/20 text-white/90 hover:text-white hover:bg-white/10"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/auth/login"
+                    className="block px-2 py-2 rounded-full bg-[#c21e1e] text-white hover:bg-[#961111]"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )
+            ) : null}
           </div>
         </div>
       )}
@@ -143,3 +231,4 @@ const Navbar = () => {
 }
 
 export default Navbar
+

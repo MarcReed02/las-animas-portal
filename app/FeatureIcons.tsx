@@ -37,9 +37,9 @@ export default function FeatureIcons() {
   };
 
   return (
-    <section className="w-full md:px-8 py-8">
-      <div className="w-full px-0 py-0">
-        <div className="relative bg-[#AC2734] min-h-[150px] flex items-center rounded-[10px] overflow-hidden mx-4 md:mx-8 shadow-lg ">
+    <section className="w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="relative bg-[#c21e1e] min-h-[130px] flex items-center rounded-[10px] overflow-hidden shadow-lg [color:rgb(255,255,255)!important]">
           {/* Botón izquierda */}
           <button
             type="button"
@@ -59,8 +59,8 @@ export default function FeatureIcons() {
                   href={href}
                   className="shrink-0 flex flex-col items-center justify-center px-2 py-4 text-center"
                 >
-                  <Icon className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 text-white mb-2" />
-                  <span className="text-white text-xs md:text-sm font-semibold uppercase tracking-wide">
+                  <Icon className="h-9 w-9 md:h-10 md:w-10 text-white mb-2 [color:rgb(255,255,255)!important]" />
+                  <span className="text-white text-xs md:text-sm font-semibold uppercase tracking-wide [color:rgb(255,255,255)!important]">
                     {label}
                   </span>
                 </Link>

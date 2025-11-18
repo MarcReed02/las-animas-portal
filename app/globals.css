@@ -2,8 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --page-bg: #f5f5f5;
+  --page-text: #0b0b0b;
+}
+
+.dark {
+  color-scheme: dark;
+  --page-bg: #0b0b0b;
+  --page-text: #ffffff;
+}
+
+body {
+  background-color: var(--page-bg);
+  color: var(--page-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 html {
   scroll-behavior: smooth;
+  font-size: 110%;
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 100%;
+  }
 }
 
 /* (Revert) removed container-fixed helper */

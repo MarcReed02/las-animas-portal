@@ -34,45 +34,51 @@ export function ForgotPasswordForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-2xl bg-[#151515]/90 ring-1 ring-white/10 p-6 md:p-8 text-white shadow-xl"
+      className="w-full rounded-[32px] border border-white/10 bg-[#0B0B0B] p-8 text-white backdrop-blur"
     >
-      <h1 className="text-2xl md:text-3xl font-extrabold text-center mb-6">
-        Recuperar contraseña
-      </h1>
-      <p className="text-white/80 text-sm mb-4">
-        Ingresa tu correo electrónico para enviarte un enlace de recuperación.
-      </p>
+      <div className="space-y-2 text-center">
+        <h1 className="text-3xl font-bold">Recuperar contrasena</h1>
+        <p className="text-sm text-white/70">
+          Ingresa tu correo para enviarte un enlace de restablecimiento.
+        </p>
+      </div>
 
-      <input
-        type="email"
-        required
-        placeholder="Correo electrónico"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="block w-full px-3 py-2 rounded-md bg-black/20 border border-white/10 placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
-      />
+      <label className="mt-8 block space-y-2 text-sm font-semibold text-white/80">
+        Correo electronico
+        <input
+          type="email"
+          required
+          placeholder="nombre@correo.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder-white/40 transition focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/15"
+        />
+      </label>
 
       {status === 'ok' && (
-        <p className="mt-3 text-green-400 text-sm">
+        <p className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-[#48d2a0]" role="status">
           Te enviamos un correo con instrucciones.
         </p>
       )}
-      {error && <p className="mt-3 text-red-400 text-sm">{error}</p>}
+      {error && (
+        <p className="mt-4 rounded-2xl border border-[#ff3b30]/40 bg-[#1a0d0d] px-4 py-3 text-sm text-[#ff6b5c]" role="alert">
+          {error}
+        </p>
+      )}
 
       <button
         type="submit"
         disabled={loading}
-        className="mt-6 w-full rounded-md bg-[#AC2734] hover:bg-[#C92F3F] py-3 font-semibold uppercase tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+        className="mt-8 w-full rounded-full bg-[#ef2b2d] py-3 text-lg font-semibold text-white transition hover:bg-[#ff3b30] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {loading ? 'Enviando…' : 'Enviar enlace'}
+        {loading ? 'Enviando...' : 'Enviar enlace'}
       </button>
 
-      <div className="mt-4 text-center text-white/80 text-sm">
-        <Link href="/auth/login/ingresar" className="underline hover:text-white">
-          Volver al inicio de sesión
+      <div className="mt-6 text-center text-sm text-white/70">
+        <Link href="/auth/login/ingresar" className="font-semibold text-[#ff3b30] transition hover:text-white">
+          Volver al inicio de sesion
         </Link>
       </div>
     </form>
   )
 }
-

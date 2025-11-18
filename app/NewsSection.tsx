@@ -96,10 +96,10 @@ export default function NewsSection({
   }, [data, items, limit])
 
   return (
-    <section className={`w-full bg-[#0B0B0B] py-12 md:py-16 ${className}`}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section className={`w-full bg-[#0B0B0B] py-14 md:py-20 ${className}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Grid de noticias */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-10 gap-y-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:[grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-x-10 gap-y-12">
           {loading
             ? Array.from({ length: limit }).map((_, idx) => (
                 <div key={`skeleton-${idx}`} className="animate-pulse">
@@ -125,7 +125,7 @@ export default function NewsSection({
             </div>
           )}
           {error && (
-            <div className="col-span-full text-center text-red-300">
+            <div className="col-span-full text-center text-[#c21e1e]">
               {error}
             </div>
           )}

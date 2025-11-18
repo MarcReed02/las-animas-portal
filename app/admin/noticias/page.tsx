@@ -101,13 +101,13 @@ export default function AdminNoticias() {
         <h1 className="text-2xl md:text-3xl font-extrabold">Noticias</h1>
         <button
           onClick={() => setOpen(true)}
-          className="rounded-md bg-[#AC2734] hover:bg-[#C92F3F] px-4 py-2 font-semibold"
+          className="rounded-md bg-[#c21e1e] hover:bg-[#c21e1e] px-4 py-2 font-semibold"
         >
           Nueva noticia
         </button>
       </div>
 
-      {error && <div className="rounded-md bg-red-500/10 border border-red-500/30 text-red-200 px-4 py-2">{error}</div>}
+      {error && <div className="rounded-md bg-[#c21e1e]/15 border border-[#c21e1e]/40 text-[#c21e1e] px-4 py-2">{error}</div>}
 
       {/* Buscador */}
       <div className="relative max-w-xl">
@@ -223,7 +223,7 @@ export default function AdminNoticias() {
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button type="button" disabled={submitting} onClick={()=>setOpen(false)} className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/15 disabled:opacity-60">Cancelar</button>
-                <button type="submit" disabled={submitting || !title} className="px-4 py-2 rounded-md bg-[#AC2734] hover:bg-[#C92F3F] disabled:opacity-60">
+                <button type="submit" disabled={submitting || !title} className="px-4 py-2 rounded-md bg-[#c21e1e] hover:bg-[#c21e1e] disabled:opacity-60">
                   {submitting ? 'Subiendo…' : 'Subir'}
                 </button>
               </div>

@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { FiLayout, FiCheckSquare, FiFileText, FiUsers, FiSettings } from "react-icons/fi";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { FiLayout, FiCheckSquare, FiFileText, FiUsers, FiSettings, FiLogOut } from "react-icons/fi";
+
+import { createClient } from "@/lib/supabase/client";
 
 const nav = [
   { href: "/admin", label: "Solicitudes", icon: FiCheckSquare },
@@ -13,6 +16,29 @@ const nav = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+
+    try {
+      setIsSigningOut(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error signing out:", error.message);
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Unexpected error signing out:", error);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex">
       {/* Sidebar */}
@@ -29,9 +55,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center gap-3 px-3 py-2 rounded-md transition-colors border ${
+                className={`group flex items-center gap-3 px-3 py-2 rounded-full transition-colors border ${
                   active
-                    ? "bg-white/10 border-white/10"
+                    ? "bg-white/10 border-transparent"
                     : "border-transparent hover:bg-white/5"
                 }`}
               >
@@ -41,7 +67,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
-        <div className="h-6" />
+        <div className="px-3 pb-4">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="group flex w-full items-center gap-3 px-3 py-2 rounded-full border border-transparent transition-colors hover:bg-white/5 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <FiLogOut className="h-4 w-4 text-white/70 group-hover:text-white" />
+            <span className="text-sm">{isSigningOut ? "Saliendo..." : "Salir"}</span>
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
