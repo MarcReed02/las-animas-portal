@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -195,7 +195,7 @@ export default function Page() {
                 value={lastName}
                 onChange={(e) => setLastName(formatNameInput(e.target.value))}
                 onBlur={(e) => setLastName(finalizeName(e.target.value))}
-                placeholder="Ej: Pérez Soto"
+                placeholder="Ej: Perez Soto"
                 aria-invalid={Boolean(errors.lastName)}
                 className={inputClass(errors.lastName)}
               />
@@ -252,7 +252,7 @@ export default function Page() {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 onBlur={(e) => setAddress(normalizeAddress(e.target.value))}
-                placeholder="Ubicación"
+                placeholder="Ubicacionn"
                 aria-invalid={Boolean(errors.address)}
                 className={inputClass(errors.address)}
               />
@@ -435,7 +435,8 @@ function validateSimpleName(value: string, label: string) {
   if (cleaned.length < 2 || cleaned.length > 40) {
     return `${label} debe tener entre 2 y 40 letras.`;
   }
-  if (/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]/.test(cleaned)) {
+  const lettersOnly = /^[A-Za-z\s]+$/;
+  if (!lettersOnly.test(cleaned)) {
     return `${label} solo puede tener letras.`;
   }
   return "";
@@ -503,12 +504,12 @@ function validateForm({
 
   const digits = phone.replace(/\D/g, "");
   if (!digits) {
-    errors.phone = "Phone number is required.";
+    errors.phone = "El telefono es obligatorio.";
   }
 
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail.includes("@")) {
-    errors.email = "Email must be valid.";
+    errors.email = "El correo debe ser valido.";
   }
 
   const addressError = validateAddress(address);
@@ -517,19 +518,19 @@ function validateForm({
   }
 
   if (!password) {
-    errors.password = "Password is required.";
+    errors.password = "La contrasena es obligatoria.";
   } else if (password.length < MIN_PASSWORD || password.length > MAX_PASSWORD) {
-    errors.password = `Password must be between ${MIN_PASSWORD} and ${MAX_PASSWORD} characters.`;
+    errors.password = `La contrasena debe tener entre ${MIN_PASSWORD} y ${MAX_PASSWORD} caracteres.`;
   }
   if (passwordCheck.score < 4) {
-    errors.password = passwordCheck.message || "Password is too weak.";
+    errors.password = passwordCheck.message || "La contrasena es debil.";
   }
   if (confirmPassword !== password) {
     errors.confirmPassword = "Las contrasenas no coinciden.";
   }
 
   if (!file) {
-    errors.file = "Please upload a document.";
+    errors.file = "Debes subir un documento.";
   }
 
   return errors;
@@ -540,12 +541,12 @@ function evaluatePassword(password: string): PasswordCheck {
     return { score: 0, message: "Se requiere una contrasena." };
   }
   if (password.trim() !== password) {
-    return { score: 0, message: "No spaces at the beginning or end." };
+    return { score: 0, message: "No uses espacios al inicio o al final." };
   }
   for (const ch of password) {
     const code = ch.codePointAt(0)!;
     if (bannedPasswordRanges.some(([start, end]) => code >= start && code <= end)) {
-      return { score: 0, message: "Password contains unsupported characters." };
+      return { score: 0, message: "La contrasena contiene caracteres no soportados." };
     }
   }
 
@@ -604,3 +605,10 @@ function FieldWrapper({
     </div>
   );
 }
+
+
+
+
+
+
+
