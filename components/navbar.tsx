@@ -7,6 +7,60 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { PiUserCircleFill } from "react-icons/pi";
 
+const getFirstToken = (value?: unknown) => {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return trimmed.split(/\s+/)[0] ?? "";
+};
+
+const getShortDisplayName = (user: User | null) => {
+  if (!user) return "Usuario";
+  const metadata = (user.user_metadata || {}) as Record<string, unknown>;
+  const fullName = (metadata.nombre as string | undefined) ?? (metadata.full_name as string | undefined) ?? "";
+  const rawFirstNames =
+    (metadata.nombres as string | undefined) ??
+    (metadata.first_name as string | undefined) ??
+    (metadata.nombre as string | undefined) ??
+    "";
+  const rawLastNames =
+    (metadata.apellidos as string | undefined) ??
+    (metadata.apellido as string | undefined) ??
+    (metadata.last_name as string | undefined) ??
+    "";
+
+  let firstName = getFirstToken(rawFirstNames);
+  let lastName = getFirstToken(rawLastNames);
+
+  if (!firstName && fullName) {
+    firstName = getFirstToken(fullName);
+  }
+
+  if (!lastName) {
+    const trimmedFull = fullName.trim();
+    const fullTokens = trimmedFull ? trimmedFull.split(/\s+/).filter(Boolean) : [];
+    const firstNamesTokensRaw =
+      typeof rawFirstNames === "string" && rawFirstNames.trim().length > 0
+        ? rawFirstNames.trim().split(/\s+/).filter(Boolean)
+        : [];
+    const assumedFirstTokensCount = firstNamesTokensRaw.length || (firstName ? 1 : 0);
+
+    if (fullTokens.length > assumedFirstTokensCount) {
+      const remainderTokens = fullTokens.slice(assumedFirstTokensCount);
+      if (remainderTokens.length) {
+        lastName = remainderTokens[0];
+      }
+    }
+
+    if (!lastName && fullTokens.length > 1) {
+      lastName = fullTokens[1];
+    }
+  }
+
+  const combined = [firstName, lastName].filter(Boolean).join(" ").trim();
+  return combined || user.email?.split("@")[0] || "Usuario";
+};
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -46,6 +100,7 @@ const Navbar = () => {
   }, [showMenu]);
 
   const nav = [
+    { name: "Comercios", href: "/comercios" },
     { name: "Contacto", href: "/contacto" },
     { name: "Nosotros", href: "/nosotros" },
   ];
@@ -70,6 +125,8 @@ const Navbar = () => {
 
   const toggleMenu = () => setShowMenu((prev) => !prev);
 
+  const shortDisplayName = useMemo(() => getShortDisplayName(currentUser), [currentUser]);
+
   const userAvatar = currentUser ? (
     <div className="relative" ref={userMenuRef}>
       <button
@@ -77,7 +134,7 @@ const Navbar = () => {
         className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/90 hover:bg-white/10 transition"
       >
         <PiUserCircleFill className="h-6 w-6 text-white" />
-        <span className="hidden md:block font-semibold">{currentUser.email?.split("@")[0] || "Usuario"}</span>
+        <span className="hidden md:block font-semibold">{shortDisplayName}</span>
       </button>
 
       {showMenu && (
@@ -87,7 +144,7 @@ const Navbar = () => {
             <div className="mb-3 flex items-center gap-3 border-b border-white/10 pb-3">
               <PiUserCircleFill className="h-6 w-6 text-white" />
               <div className="flex flex-col text-xs text-white/70">
-                <span className="text-sm font-semibold text-white">{currentUser.email || "Usuario"}</span>
+                <span className="text-sm font-semibold text-white">{shortDisplayName}</span>
                 <span className="uppercase text-white/50">Sesión activa</span>
               </div>
             </div>
@@ -114,10 +171,10 @@ const Navbar = () => {
   ) : (
     <div className="flex items-center gap-2">
       <Link href="/auth/login/ingresar" className={loginBtn}>
-        Log in
+        Iniciar sesión
       </Link>
       <Link href="/auth/login" className={signupBtn}>
-        Sign up
+        Registrarse
       </Link>
     </div>
   );
@@ -191,11 +248,11 @@ const Navbar = () => {
               currentUser ? (
                 <div className="flex flex-col gap-3 rounded-2xl border border-white/15 px-3 py-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-base font-semibold uppercase text-white">
-                    {(currentUser.email?.charAt(0) || "?").toUpperCase()}
+                    {shortDisplayName.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex flex-col text-sm text-white/80">
                     <span className="font-semibold">Sesión iniciada</span>
-                    <span className="text-white/60">{currentUser.email}</span>
+                    <span className="text-white/60">{shortDisplayName}</span>
                   </div>
                   <button
                     onClick={handleLogout}
@@ -211,14 +268,14 @@ const Navbar = () => {
                     className="block px-2 py-2 rounded-full border border-white/20 text-white/90 hover:text-white hover:bg-white/10"
                     onClick={() => setIsOpen(false)}
                   >
-                    Login
+                    Iniciar sesión
                   </Link>
                   <Link
                     href="/auth/login"
                     className="block px-2 py-2 rounded-full bg-[#c21e1e] text-white hover:bg-[#961111]"
                     onClick={() => setIsOpen(false)}
                   >
-                    Sign up
+                    Registrarse
                   </Link>
                 </>
               )

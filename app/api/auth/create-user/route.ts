@@ -4,7 +4,8 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 type SolicitudRow = {
   id: string;
-  nombre: string;
+  nombres: string | null;
+  apellidos: string | null;
   rut: string | null;
   correo: string;
   telefono: string | null;
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     console.log("[api/create-user] buscando solicitud", solicitudId);
     const { data: solicitud, error: solicitudError } = await adminClient
       .from("solicitudes_registro")
-      .select("id,nombre,rut,correo,telefono,direccion,password_hash,estado")
+      .select("id,nombres,apellidos,rut,correo,telefono,direccion,password_hash,estado")
       .eq("id", solicitudId)
       .single<SolicitudRow>();
 
@@ -65,8 +66,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "La solicitud ya fue gestionada" }, { status: 400 });
     }
 
+    let resolvedFirstNames = solicitud.nombres?.trim() ?? "";
+    let resolvedLastNames = solicitud.apellidos?.trim() ?? "";
+    const finalFullName = [resolvedFirstNames, resolvedLastNames].filter(Boolean).join(" ").trim();
+
     const metadataPayload = {
-      nombre: solicitud.nombre,
+      nombre: finalFullName,
+      nombres: resolvedFirstNames || null,
+      apellidos: resolvedLastNames || null,
       rut: solicitud.rut,
       telefono: solicitud.telefono,
       direccion: solicitud.direccion,
@@ -183,7 +190,8 @@ export async function POST(request: NextRequest) {
     console.log("[api/create-user] guardando perfil en usuarios", { userId });
     const profilePayload = {
       id: userId,
-      nombre: solicitud.nombre,
+      nombres: resolvedFirstNames || null,
+      apellidos: resolvedLastNames || null,
       correo: solicitud.correo,
       rut: solicitud.rut,
       telefono: solicitud.telefono,

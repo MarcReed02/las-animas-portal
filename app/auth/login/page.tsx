@@ -107,7 +107,8 @@ export default function Page() {
         }
 
       const payload = {
-        nombre: `${normalizedFirstName} ${normalizedLastName}`.trim(),
+        nombres: normalizedFirstName,
+        apellidos: normalizedLastName,
         rut: normalizedRut,
         correo: normalizedEmail,
         direccion: normalizedAddress,
@@ -129,7 +130,14 @@ export default function Page() {
           }));
           return;
         }
-        console.error("[registro] Error insertando solicitud", insertError);
+        console.error("[registro] ERROR COMPLETO AL INSERTAR:", {
+          mensaje: insertError?.message,
+          detalles: insertError?.details,
+          hint: insertError?.hint,
+          codigo: insertError?.code,
+          stack: insertError?.stack,
+          error_completo: JSON.stringify(insertError, null, 2),
+        });
         throw insertError;
       }
       console.log("[registro] Solicitud creada correctamente");
@@ -165,7 +173,7 @@ export default function Page() {
           </div>
 
           <div className="space-y-6">
-            <FieldWrapper label="Nombre" error={errors.firstName}>
+            <FieldWrapper label="Nombres" error={errors.firstName}>
               <input
                 type="text"
                 required
@@ -173,13 +181,13 @@ export default function Page() {
                 value={firstName}
                 onChange={(e) => setFirstName(formatNameInput(e.target.value))}
                 onBlur={(e) => setFirstName(finalizeName(e.target.value))}
-                placeholder="nombre"
+                placeholder="Ej: Juan Antonio"
                 aria-invalid={Boolean(errors.firstName)}
                 className={inputClass(errors.firstName)}
               />
             </FieldWrapper>
 
-            <FieldWrapper label="Apellido" error={errors.lastName}>
+            <FieldWrapper label="Apellidos" error={errors.lastName}>
               <input
                 type="text"
                 required
@@ -187,7 +195,7 @@ export default function Page() {
                 value={lastName}
                 onChange={(e) => setLastName(formatNameInput(e.target.value))}
                 onBlur={(e) => setLastName(finalizeName(e.target.value))}
-                placeholder="apellido"
+                placeholder="Ej: Pérez Soto"
                 aria-invalid={Boolean(errors.lastName)}
                 className={inputClass(errors.lastName)}
               />
@@ -404,14 +412,15 @@ function formatRutInput(raw: string) {
 }
 
 function formatNameInput(value: string) {
-  return value
-    .normalize("NFKC")
-    .replace(/[^\p{L}]/gu, "")
-    .slice(0, 40);
+  const normalized = value.normalize("NFKC").replace(/[^\p{L}\s]/gu, "");
+  const collapsed = normalized.replace(/\s{2,}/g, " ").trimStart();
+  const endsWithSpace = /\s$/.test(collapsed);
+  const cleaned = endsWithSpace ? collapsed : collapsed.trimEnd();
+  return cleaned.slice(0, 40);
 }
 
 function finalizeName(value: string) {
-  return formatNameInput(value);
+  return formatNameInput(value).trim();
 }
 
 function normalizeAddress(value: string) {
@@ -426,7 +435,7 @@ function validateSimpleName(value: string, label: string) {
   if (cleaned.length < 2 || cleaned.length > 40) {
     return `${label} debe tener entre 2 y 40 letras.`;
   }
-  if (/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(cleaned)) {
+  if (/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]/.test(cleaned)) {
     return `${label} solo puede tener letras.`;
   }
   return "";
@@ -476,11 +485,11 @@ function validateForm({
   passwordCheck: PasswordCheck;
 }) {
   const errors: Record<string, string> = {};
-  const firstNameError = validateSimpleName(firstName, "Nombre");
+  const firstNameError = validateSimpleName(firstName, "Nombres");
   if (firstNameError) {
     errors.firstName = firstNameError;
   }
-  const lastNameError = validateSimpleName(lastName, "Apellido");
+  const lastNameError = validateSimpleName(lastName, "Apellidos");
   if (lastNameError) {
     errors.lastName = lastNameError;
   }

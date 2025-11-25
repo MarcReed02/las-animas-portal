@@ -109,7 +109,7 @@ export function LoginForm() {
       console.log('[login] usuario autenticado', { uid })
       const { data: perfil, error: perfilError } = await supabase
         .from('usuarios')
-        .select('rol, estado, nombre, correo')
+        .select('rol, estado, nombres, apellidos, correo')
         .eq('id', uid)
         .single()
       console.log('[login] perfil obtenido', perfil)

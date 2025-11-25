@@ -8,7 +8,8 @@ import { hashPassword } from '@/lib/password'
 export function SignUpForm() {
   const router = useRouter()
   const supabase = createClient()
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [rut, setRut] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,8 +39,11 @@ export function SignUpForm() {
       const password_hash = await hashPassword(password)
       console.log('[sign-up] hash generado correctamente')
 
+      const trimmedFirstName = firstName.trim()
+      const trimmedLastName = lastName.trim()
       const { error } = await supabase.from('solicitudes_registro').insert({
-        nombre: name,
+        nombres: trimmedFirstName,
+        apellidos: trimmedLastName,
         rut,
         correo: email,
         documento_url,
@@ -48,7 +52,8 @@ export function SignUpForm() {
       })
       if (error) throw error
       setSuccess(true)
-      setName('')
+      setFirstName('')
+      setLastName('')
       setRut('')
       setEmail('')
       setPassword('')
@@ -68,15 +73,29 @@ export function SignUpForm() {
       className="rounded-2xl bg-[#151515]/90 ring-1 ring-white/10 p-6 md:p-8 text-white space-y-4"
     >
       <h1 className="text-2xl font-extrabold">Subir noticia</h1>
-      <div>
-        <label className="block text-sm mb-1">Nombre</label>
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-md bg-black/20 border border-white/10 px-3 py-2"
-        />
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="block text-sm mb-1">Nombres</label>
+          <input
+            type="text"
+            required
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Ej: Juan Antonio"
+            className="w-full rounded-md bg-black/20 border border-white/10 px-3 py-2"
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Apellidos</label>
+          <input
+            type="text"
+            required
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Ej: Pérez Soto"
+            className="w-full rounded-md bg-black/20 border border-white/10 px-3 py-2"
+          />
+        </div>
       </div>
       <div>
         <label className="block text-sm mb-1">RUT</label>

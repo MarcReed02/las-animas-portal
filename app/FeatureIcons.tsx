@@ -25,7 +25,7 @@ const shortcuts: Shortcut[] = [
   { label: "Recreación", href: "/recreacion", icon: FiActivity },
   { label: "Transporte", href: "/transporte", icon: FiTruck },
   { label: "Espacios Públicos", href: "/espacios-publicos", icon: FiMap },
-  { label: "Comercios", href: "/comercios-adheridos", icon: FiShoppingBag },
+  { label: "Comercios", href: "/comercios", icon: FiShoppingBag },
 ];
 
 export default function FeatureIcons() {

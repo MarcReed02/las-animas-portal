@@ -29,9 +29,16 @@ export default async function PerfilPage() {
         <div>
           <p className="text-white/50">Nombre</p>
           <p className="text-lg font-medium text-white">
-            {(user.user_metadata?.nombre as string | undefined) ||
-              (user.user_metadata?.full_name as string | undefined) ||
-              "Sin definir"}
+            {[
+              (user.user_metadata?.nombres as string | undefined) ||
+                (user.user_metadata?.nombre as string | undefined) ||
+                (user.user_metadata?.full_name as string | undefined) ||
+                "",
+              (user.user_metadata?.apellidos as string | undefined) || "",
+            ]
+              .map((value) => (value || "").trim())
+              .filter(Boolean)
+              .join(" ") || "Sin definir"}
           </p>
         </div>
         <div>

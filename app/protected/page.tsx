@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 
 type Solicitud = {
   id: string;
-  nombre: string;
+  nombres: string | null;
+  apellidos: string | null;
   rut: string;
   correo: string;
   telefono: string | null;
@@ -34,7 +35,7 @@ export default async function ProtectedPage() {
 
   const { data: solicitudes, error: solicitudesError } = await supabase
     .from("solicitudes_registro")
-    .select("id,nombre,rut,correo,telefono,documento_url,estado,fecha_solicitud,created_at")
+    .select("id,nombres,apellidos,rut,correo,telefono,documento_url,estado,fecha_solicitud,created_at")
     .order("fecha_solicitud", { ascending: false });
 
   const fmtDate = (value?: string | null) => {
@@ -53,11 +54,21 @@ export default async function ProtectedPage() {
     return formatRut(value);
   };
 
+  const buildFullName = (nombres?: string | null, apellidos?: string | null) => {
+    const first = (nombres ?? "").trim();
+    const last = (apellidos ?? "").trim();
+    const combined = [first, last].filter(Boolean).join(" ").trim();
+    return combined || first || last || "Sin nombre";
+  };
+
   const displayName =
-    (currentUser.user_metadata?.nombre as string | undefined) ||
-    (currentUser.user_metadata?.full_name as string | undefined) ||
-    currentUser.email?.split("@")[0] ||
-    "Usuario";
+    buildFullName(
+      (currentUser.user_metadata?.nombres as string | undefined) ||
+        (currentUser.user_metadata?.nombre as string | undefined) ||
+        (currentUser.user_metadata?.full_name as string | undefined) ||
+        undefined,
+      (currentUser.user_metadata?.apellidos as string | undefined) || undefined,
+    ) || currentUser.email?.split("@")[0] || "Usuario";
 
   const solicitudesList = solicitudes ?? [];
   const resumen = solicitudesList.reduce(
@@ -148,7 +159,7 @@ export default async function ProtectedPage() {
                 {solicitudesList.map((solicitud) => (
                   <tr key={solicitud.id} className="border-t border-white/5 text-white/80 hover:bg-white/5">
                     <td className="px-4 py-2">{fmtDate(solicitud.fecha_solicitud ?? solicitud.created_at)}</td>
-                    <td className="px-4 py-2 font-medium text-white">{solicitud.nombre}</td>
+                    <td className="px-4 py-2 font-medium text-white">{buildFullName(solicitud.nombres, solicitud.apellidos)}</td>
                     <td className="px-4 py-2">{fmtRut(solicitud.rut)}</td>
                     <td className="px-4 py-2">{solicitud.correo}</td>
                     <td className="px-4 py-2">{solicitud.telefono ?? "N/A"}</td>
