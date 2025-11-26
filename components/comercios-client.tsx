@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { PiHeartBold, PiMapPin, PiPhoneCall, PiClock } from "react-icons/pi";
-import { FiInstagram } from "react-icons/fi";
+import { FiInstagram, FiSearch, FiChevronDown } from "react-icons/fi";
 import { FaFacebookF, FaWhatsapp } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa6";
 
@@ -35,10 +35,10 @@ function firstImage(listing: Listing) {
 function Card({ listing }: { listing: Listing }) {
   const image = firstImage(listing);
   return (
-    <div className="rounded-3xl border border-white/10 bg-[#0c0c0c] shadow-2xl overflow-hidden text-white">
+    <div className="group rounded-3xl border border-white/10 bg-[#0c0c0c] shadow-2xl overflow-hidden text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-25px_rgba(0,0,0,0.8)]">
       <div className="relative h-44 w-full overflow-hidden">
         {image ? (
-          <Image src={image} alt={listing.titulo} fill className="object-cover" />
+          <Image src={image} alt={listing.titulo} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-white/40">Sin imagen</div>
         )}
@@ -81,25 +81,25 @@ function Card({ listing }: { listing: Listing }) {
             <p className="text-[11px] uppercase tracking-wide text-white/50">Social</p>
             <div className="mt-2 flex items-center gap-3 text-white/80">
               {listing.instagram && (
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
-                  <FiInstagram className="h-4 w-4" />
-                </span>
-              )}
-              {listing.facebook && (
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
-                  <FaFacebookF className="h-4 w-4" />
-                </span>
-              )}
-              {listing.whatsapp && (
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
-                  <FaWhatsapp className="h-4 w-4" />
-                </span>
-              )}
-              {listing.tiktok && (
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
-                  <FaTiktok className="h-4 w-4" />
-                </span>
-              )}
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-transform duration-150 hover:scale-110">
+              <FiInstagram className="h-4 w-4" />
+            </span>
+          )}
+          {listing.facebook && (
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-transform duration-150 hover:scale-110">
+              <FaFacebookF className="h-4 w-4" />
+            </span>
+          )}
+          {listing.whatsapp && (
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-transform duration-150 hover:scale-110">
+              <FaWhatsapp className="h-4 w-4" />
+            </span>
+          )}
+          {listing.tiktok && (
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-transform duration-150 hover:scale-110">
+              <FaTiktok className="h-4 w-4" />
+            </span>
+          )}
             </div>
           </div>
         )}
@@ -130,6 +130,7 @@ export default function ComerciosClient({ listings }: { listings: Listing[] }) {
   const [search, setSearch] = useState("");
   const [activeCats, setActiveCats] = useState<string[]>([]);
   const [activeSubs, setActiveSubs] = useState<string[]>([]);
+  const [expandedCats, setExpandedCats] = useState<string[]>(() => CATEGORY_GROUPS.map((c) => c.name));
 
   const categories = useMemo(() => CATEGORY_GROUPS.map((c) => c.name), []);
   const subcategories = useMemo(
@@ -156,50 +157,84 @@ export default function ComerciosClient({ listings }: { listings: Listing[] }) {
     setActiveSubs((prev) => (prev.includes(sub) ? prev.filter((c) => c !== sub) : [...prev, sub]));
   };
 
+  const toggleExpanded = (cat: string) => {
+    setExpandedCats((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
+  };
+
+  const clearFilters = () => {
+    setActiveCats([]);
+    setActiveSubs([]);
+    setSearch("");
+  };
+
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr] transition-opacity duration-300">
       <aside className="rounded-3xl border border-white/10 bg-[#0c0c0c] p-5 space-y-4">
-        <div className="space-y-1">
-          <p className="text-lg font-semibold text-white">Categorias</p>
-          <p className="text-sm text-white/60">Selecciona para filtrar</p>
+        <div className="space-y-3">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 h-4 w-4" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar comercios..."
+              className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-3 py-3 text-sm text-white placeholder:text-white/50 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.5)] focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors duration-200"
+            />
+          </div>
+          <div className="flex items-center justify-between text-xs uppercase tracking-wide text-white/60">
+            <span>Filtrar</span>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-[12px] text-blue-300 hover:text-blue-200 transition-colors duration-150"
+            >
+              Limpiar filtros
+            </button>
+          </div>
         </div>
         <div className="space-y-4 text-sm text-white/80">
           {categories.length === 0 && <p className="text-white/50">Sin categorias</p>}
           {CATEGORY_GROUPS.map((group) => {
             const active = activeCats.includes(group.name);
+            const expanded = expandedCats.includes(group.name);
             return (
               <div
                 key={group.name}
-                className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 space-y-3 shadow-inner"
+                className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 space-y-3 shadow-inner transition-transform duration-300 hover:-translate-y-0.5"
               >
-                <label className="flex items-center gap-2 text-base font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={active}
-                    onChange={() => toggleCat(group.name)}
-                    className="h-4 w-4 rounded border-white/30 bg-transparent"
-                  />
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleCat(group.name);
+                    toggleExpanded(group.name);
+                  }}
+                  className="flex w-full items-center justify-between text-base font-semibold text-left"
+                >
                   <span className={active ? "text-white" : "text-white/80"}>{group.name}</span>
-                </label>
-                <div className="flex flex-wrap gap-2 pl-1">
-                  {group.subs.map((sub) => {
-                    const subActive = activeSubs.includes(sub);
-                    return (
-                      <button
-                        key={sub}
-                        type="button"
-                        onClick={() => toggleSub(sub)}
-                        className={`rounded-xl px-3 py-1 text-xs font-semibold ${
-                          subActive
-                            ? "bg-white/15 text-white border border-white/40"
-                            : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-                        }`}
-                      >
-                        {sub}
-                      </button>
-                    );
-                  })}
-                </div>
+                  <FiChevronDown
+                    className={`h-4 w-4 text-white/60 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {expanded && (
+                  <div className="flex flex-wrap gap-2 pl-1">
+                    {group.subs.map((sub) => {
+                      const subActive = activeSubs.includes(sub);
+                      return (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => toggleSub(sub)}
+                          className={`rounded-xl px-3 py-1 text-xs font-semibold transition-colors duration-200 ${
+                            subActive
+                              ? "bg-white/15 text-white border border-white/40"
+                              : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                          }`}
+                        >
+                          {sub}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -207,15 +242,6 @@ export default function ComerciosClient({ listings }: { listings: Listing[] }) {
       </aside>
 
       <div className="space-y-6">
-        <div className="relative">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="¿Que estas buscando hoy?"
-            className="w-full rounded-full border border-white/10 bg-white/5 px-5 py-3 text-white placeholder:text-white/50 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.5)] focus:outline-none focus:ring-2 focus:ring-white/20"
-          />
-        </div>
-
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-white/70">
             No hay resultados con los filtros aplicados.
