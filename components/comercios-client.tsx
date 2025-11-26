@@ -17,6 +17,10 @@ type Listing = {
   horario: string | null;
   mostrar_telefono: boolean | null;
   telefono_snapshot: string | null;
+  instagram?: string | null;
+  facebook?: string | null;
+  whatsapp?: string | null;
+  tiktok?: string | null;
   anuncio_solicitud_imagenes?: { url: string; orden: number | null }[];
 };
 
