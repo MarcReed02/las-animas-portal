@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { PiHeartBold, PiMapPin, PiPhoneCall, PiClock } from "react-icons/pi";
+import { FiInstagram } from "react-icons/fi";
+import { FaFacebookF, FaWhatsapp } from "react-icons/fa";
+import { FaTiktok } from "react-icons/fa6";
 
 type Listing = {
   id: string;
@@ -63,6 +66,31 @@ function Card({ listing }: { listing: Listing }) {
               <PiPhoneCall className="h-4 w-4" /> {listing.telefono_snapshot}
             </div>
           )}
+          <div className="pt-2">
+            <p className="text-[11px] uppercase tracking-wide text-white/50">Social</p>
+            <div className="mt-2 flex items-center gap-3 text-white/80">
+              {listing.instagram && (
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/5">
+                  <FiInstagram className="h-4 w-4" />
+                </span>
+              )}
+              {listing.facebook && (
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/5">
+                  <FaFacebookF className="h-4 w-4" />
+                </span>
+              )}
+              {listing.whatsapp && (
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/5">
+                  <FaWhatsapp className="h-4 w-4" />
+                </span>
+              )}
+              {listing.tiktok && (
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/5">
+                  <FaTiktok className="h-4 w-4" />
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

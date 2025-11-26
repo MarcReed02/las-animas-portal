@@ -490,13 +490,16 @@ export default function AnnouncementForm({ userPhone }: { userPhone?: string | n
           )}
 
           {previewData.socials.length > 0 && (
-            <div className="mt-4 space-y-2 text-sm text-white/70">
-              <p className="text-xs uppercase tracking-wide text-white/50">Redes sociales</p>
-              <div className="space-y-2">
+            <div className="mt-6 space-y-2 text-sm text-white/70">
+              <p className="text-xs uppercase tracking-wide text-white/50">Social</p>
+              <div className="flex items-center gap-3 text-white/80">
                 {previewData.socials.map((social) => (
-                  <div key={social.key} className="flex items-center gap-2 text-white/80">
+                  <div
+                    key={social.key}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5"
+                    title={social.value}
+                  >
                     <social.icon className="h-4 w-4" />
-                    <span>{social.value}</span>
                   </div>
                 ))}
               </div>
