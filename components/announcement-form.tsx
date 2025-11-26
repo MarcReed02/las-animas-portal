@@ -430,9 +430,8 @@ export default function AnnouncementForm({ userPhone }: { userPhone?: string | n
             <div className="space-y-3">
               {socialFields.map((social) => (
                 <div key={social.key} className="flex items-center gap-3 rounded-2xl border border-white/15 bg-black/20 px-4 py-3">
-                  <div className="flex items-center gap-2 text-white/80">
-                    <social.icon className="h-5 w-5 text-white/70" />
-                    <span className="text-sm font-medium">{social.label}</span>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80">
+                    <social.icon className="h-4 w-4 text-white/70" />
                   </div>
                   <input
                     type="text"

@@ -118,49 +118,52 @@ export default function ComerciosClient({ listings }: { listings: Listing[] }) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px,1fr]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
       <aside className="rounded-3xl border border-white/10 bg-[#0c0c0c] p-5 space-y-4">
-        <div>
-          <p className="text-sm font-semibold text-white">Categorias</p>
-          <div className="mt-3 space-y-3 text-sm text-white/80">
-            {categories.length === 0 && <p className="text-white/50">Sin categorias</p>}
-            {CATEGORY_GROUPS.map((group) => {
-              const active = activeCats.includes(group.name);
-              return (
-                <label key={group.name} className="flex flex-col gap-1 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={active}
-                      onChange={() => toggleCat(group.name)}
-                      className="h-4 w-4 rounded border-white/30 bg-transparent"
-                    />
-                    <span className={active ? "text-white font-semibold" : "text-white/80"}>{group.name}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 pl-6 text-xs text-white/60">
-                    {group.subs.map((sub) => {
-                      const subActive = activeSubs.includes(sub);
-                      return (
-                        <button
-                          key={sub}
-                          type="button"
-                          onClick={() => toggleSub(sub)}
-                          className={`rounded-full px-2 py-1 border ${
-                            subActive ? "border-white/70 text-white bg-white/10" : "border-white/20 text-white/60"
-                          }`}
-                        >
-                          {sub}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </label>
-              );
-            })}
-          </div>
+        <div className="space-y-1">
+          <p className="text-lg font-semibold text-white">Categorias</p>
+          <p className="text-sm text-white/60">Selecciona para filtrar</p>
         </div>
-        <div className="pt-3 border-t border-white/10 text-white/60 text-sm">
-          Filtra por categoria o busca por titulo.
+        <div className="space-y-4 text-sm text-white/80">
+          {categories.length === 0 && <p className="text-white/50">Sin categorias</p>}
+          {CATEGORY_GROUPS.map((group) => {
+            const active = activeCats.includes(group.name);
+            return (
+              <div
+                key={group.name}
+                className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 space-y-3 shadow-inner"
+              >
+                <label className="flex items-center gap-2 text-base font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={() => toggleCat(group.name)}
+                    className="h-4 w-4 rounded border-white/30 bg-transparent"
+                  />
+                  <span className={active ? "text-white" : "text-white/80"}>{group.name}</span>
+                </label>
+                <div className="flex flex-wrap gap-2 pl-1">
+                  {group.subs.map((sub) => {
+                    const subActive = activeSubs.includes(sub);
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => toggleSub(sub)}
+                        className={`rounded-xl px-3 py-1 text-xs font-semibold ${
+                          subActive
+                            ? "bg-white/15 text-white border border-white/40"
+                            : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        {sub}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </aside>
 
