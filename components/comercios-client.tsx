@@ -43,15 +43,6 @@ function Card({ listing }: { listing: Listing }) {
           <div className="flex h-full w-full items-center justify-center text-white/40">Sin imagen</div>
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/70" />
-        <button
-          type="button"
-          className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/90 backdrop-blur"
-        >
-          <PiHeartBold />
-        </button>
-        <span className="absolute right-3 bottom-3 rounded-md bg-white/90 px-2 py-1 text-[10px] font-bold uppercase text-black">
-          Abierto
-        </span>
       </div>
       <div className="p-4 space-y-3">
         <div className="flex flex-wrap gap-2">
