@@ -61,12 +61,14 @@ function Card({ listing }: { listing: Listing }) {
           {listing.titulo}
         </h3>
         {listing.descripcion && (
-          <p className="text-sm text-white/65 line-clamp-2">{listing.descripcion}</p>
+          <p className="text-sm text-white/65 break-words whitespace-pre-wrap">{listing.descripcion}</p>
         )}
         <div className="mt-2 space-y-2 border-t border-white/10 pt-3 text-xs text-white/75">
           <div className="inline-flex items-center gap-2">
             <PiClock className="h-4 w-4" />
-            <span className="italic">{listing.horario || "Horario por confirmar"}</span>
+            <span className="italic break-words whitespace-pre-wrap">
+              {listing.horario || "Horario por confirmar"}
+            </span>
           </div>
           <div className="inline-flex items-center gap-2">
             <PiMapPin className="h-4 w-4" />
