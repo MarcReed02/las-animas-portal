@@ -68,7 +68,9 @@ function Card({ listing }: { listing: Listing }) {
           </div>
           <div className="inline-flex items-center gap-2">
             <PiMapPin className="h-4 w-4" />
-            <span>{listing.direccion || "Direccion no especificada"}</span>
+            <span className="break-words whitespace-pre-wrap">
+              {listing.direccion || "Direccion no especificada"}
+            </span>
           </div>
           {listing.mostrar_telefono && listing.telefono_snapshot && (
             <div className="inline-flex items-center gap-2">
