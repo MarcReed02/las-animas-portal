@@ -1,4 +1,5 @@
 import ComerciosClient from "@/components/comercios-client";
+import Navbar from "@/components/navbar";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 type Listing = {
@@ -39,6 +40,7 @@ export default async function ComerciosPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0b0b0b] via-[#0b0b0b] to-[#050505] text-white">
+      <Navbar />
       <div className="max-w-6xl mx-auto px-4 py-10 space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -51,4 +53,3 @@ export default async function ComerciosPage() {
     </div>
   );
 }
-
