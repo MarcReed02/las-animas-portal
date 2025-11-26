@@ -57,7 +57,9 @@ function Card({ listing }: { listing: Listing }) {
             </span>
           )}
         </div>
-        <h3 className="text-lg font-semibold leading-tight text-white">{listing.titulo}</h3>
+        <h3 className="text-lg font-semibold leading-tight text-white break-words whitespace-pre-wrap">
+          {listing.titulo}
+        </h3>
         {listing.descripcion && (
           <p className="text-sm text-white/65 line-clamp-2">{listing.descripcion}</p>
         )}
