@@ -35,67 +35,83 @@ function firstImage(listing: Listing) {
 function Card({ listing }: { listing: Listing }) {
   const image = firstImage(listing);
   return (
-    <div className="rounded-3xl border border-white/10 bg-[#101010] shadow-2xl overflow-hidden">
-      <div className="relative h-40 w-full bg-black/50">
+    <div className="rounded-3xl border border-white/10 bg-[#0c0c0c] shadow-2xl overflow-hidden text-white">
+      <div className="relative h-44 w-full overflow-hidden">
         {image ? (
           <Image src={image} alt={listing.titulo} fill className="object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-white/50">Sin imagen</div>
+          <div className="flex h-full w-full items-center justify-center text-white/40">Sin imagen</div>
         )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/70" />
         <button
           type="button"
-          className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/80 backdrop-blur"
+          className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/90 backdrop-blur"
         >
           <PiHeartBold />
         </button>
-      </div>
-      <div className="p-4 space-y-2">
-        <span className="inline-flex rounded-full bg-green-900/40 px-3 py-1 text-xs text-green-200">
-          {listing.categoria_principal || "Categoria"}
+        <span className="absolute right-3 bottom-3 rounded-md bg-white/90 px-2 py-1 text-[10px] font-bold uppercase text-black">
+          Abierto
         </span>
-        <h3 className="text-lg font-semibold text-white leading-tight">{listing.titulo}</h3>
-        <p className="text-sm text-white/60 line-clamp-2">{listing.descripcion || "Sin descripcion"}</p>
-        <div className="mt-3 space-y-2 text-xs text-white/70">
-          {listing.horario && (
-            <div className="inline-flex items-center gap-2">
-              <PiClock className="h-4 w-4" /> {listing.horario}
-            </div>
+      </div>
+      <div className="p-4 space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {listing.categoria_principal && (
+            <span className="inline-flex rounded-full bg-green-900/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-green-200">
+              {listing.categoria_principal}
+            </span>
           )}
+          {listing.subcategoria && (
+            <span className="inline-flex rounded-full bg-green-900/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-green-100">
+              {listing.subcategoria}
+            </span>
+          )}
+        </div>
+        <h3 className="text-lg font-semibold leading-tight text-white">{listing.titulo}</h3>
+        {listing.descripcion && (
+          <p className="text-sm text-white/65 line-clamp-2">{listing.descripcion}</p>
+        )}
+        <div className="mt-2 space-y-2 border-t border-white/10 pt-3 text-xs text-white/75">
+          <div className="inline-flex items-center gap-2">
+            <PiClock className="h-4 w-4" />
+            <span className="italic">{listing.horario || "Horario por confirmar"}</span>
+          </div>
           <div className="inline-flex items-center gap-2">
             <PiMapPin className="h-4 w-4" />
-            {listing.direccion || "Direccion no especificada"}
+            <span>{listing.direccion || "Direccion no especificada"}</span>
           </div>
           {listing.mostrar_telefono && listing.telefono_snapshot && (
             <div className="inline-flex items-center gap-2">
               <PiPhoneCall className="h-4 w-4" /> {listing.telefono_snapshot}
             </div>
           )}
+        </div>
+        {(listing.instagram || listing.facebook || listing.whatsapp || listing.tiktok) && (
           <div className="pt-2">
             <p className="text-[11px] uppercase tracking-wide text-white/50">Social</p>
             <div className="mt-2 flex items-center gap-3 text-white/80">
               {listing.instagram && (
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
                   <FiInstagram className="h-4 w-4" />
                 </span>
               )}
               {listing.facebook && (
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
                   <FaFacebookF className="h-4 w-4" />
                 </span>
               )}
               {listing.whatsapp && (
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
                   <FaWhatsapp className="h-4 w-4" />
                 </span>
               )}
               {listing.tiktok && (
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white/5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
                   <FaTiktok className="h-4 w-4" />
                 </span>
               )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
