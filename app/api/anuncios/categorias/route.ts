@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
@@ -8,37 +7,22 @@ type CategoryGroup = {
   subs: string[];
 };
 
+const STATIC_GROUPS: CategoryGroup[] = [
+  { name: "Restaurantes y Gastronomía", subs: ["Restaurantes", "Comida rápida", "Pizzerías", "Comida casera", "Pastelerías"] },
+  { name: "Cafeterías y Panaderías", subs: ["Cafeterías", "Panaderías"] },
+  { name: "Minimarkets y Almacenes", subs: ["Abarrotes", "Minimarkets", "Kioskos"] },
+  { name: "Supermercados", subs: ["Supermercados"] },
+  { name: "Ropa y Accesorios", subs: ["Tiendas de ropa", "Calzado", "Accesorios"] },
+  { name: "Belleza y Cuidado Personal", subs: ["Peluquerías", "Barberías", "Manicure y Spa"] },
+  { name: "Servicios Profesionales", subs: ["Servicios técnicos", "Servicios de reparación", "Profesionales independientes"] },
+  { name: "Ferreterías y Materiales", subs: ["Ferreterías", "Materiales de construcción"] },
+  { name: "Hogar y Electrodomésticos", subs: ["Electrodomésticos", "Electrónica", "Muebles y decoración"] },
+  { name: "Librerías y Papelerías", subs: ["Librerías", "Papelerías"] },
+  { name: "Salud y Bienestar", subs: ["Farmacias", "Ópticas", "Centros de salud"] },
+  { name: "Turismo y Alojamiento", subs: ["Hospedajes", "Hostales", "Cabañas", "Servicios turísticos"] },
+];
+
 export async function GET() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceKey) {
-    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
-  }
-
-  const adminClient = createAdminClient(supabaseUrl, serviceKey);
-  const { data, error } = await adminClient
-    .from("anuncio_solicitudes")
-    .select("categoria_principal, subcategoria");
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  const groupsMap = new Map<string, Set<string>>();
-  (data || []).forEach((row: any) => {
-    const cat = (row?.categoria_principal as string | null) || null;
-    const sub = (row?.subcategoria as string | null) || null;
-    if (!cat) return;
-    if (!groupsMap.has(cat)) groupsMap.set(cat, new Set<string>());
-    if (sub) groupsMap.get(cat)!.add(sub);
-  });
-
-  const groups: CategoryGroup[] = Array.from(groupsMap.entries()).map(([name, subs]) => ({
-    name,
-    subs: Array.from(subs.values()),
-  }));
-
-  return NextResponse.json({ data: groups });
+  // Devolvemos siempre el catálogo completo para que el usuario pueda filtrar aunque no haya anuncios creados aún.
+  return NextResponse.json({ data: STATIC_GROUPS });
 }
-
