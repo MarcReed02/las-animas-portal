@@ -130,16 +130,22 @@ const CATEGORY_GROUPS = [
   { name: "Turismo y Alojamiento", subs: ["Hospedajes", "Hostales", "Cabañas", "Servicios turísticos"] },
 ];
 
-export default function ComerciosClient({ listings }: { listings: Listing[] }) {
+export default function ComerciosClient({
+  listings,
+  categoryGroups,
+}: {
+  listings: Listing[];
+  categoryGroups: { name: string; subs: string[] }[];
+}) {
   const [search, setSearch] = useState("");
   const [activeCats, setActiveCats] = useState<string[]>([]);
   const [activeSubs, setActiveSubs] = useState<string[]>([]);
-  const [expandedCats, setExpandedCats] = useState<string[]>(() => CATEGORY_GROUPS.map((c) => c.name));
+  const [expandedCats, setExpandedCats] = useState<string[]>(() => categoryGroups.map((c) => c.name));
 
-  const categories = useMemo(() => CATEGORY_GROUPS.map((c) => c.name), []);
+  const categories = useMemo(() => categoryGroups.map((c) => c.name), [categoryGroups]);
   const subcategories = useMemo(
-    () => Array.from(new Set(CATEGORY_GROUPS.flatMap((c) => c.subs))),
-    [],
+    () => Array.from(new Set(categoryGroups.flatMap((c) => c.subs))),
+    [categoryGroups],
   );
 
   const filtered = useMemo(() => {
@@ -197,7 +203,7 @@ export default function ComerciosClient({ listings }: { listings: Listing[] }) {
         </div>
         <div className="space-y-4 text-sm text-white/80">
           {categories.length === 0 && <p className="text-white/50">Sin categorias</p>}
-          {CATEGORY_GROUPS.map((group) => {
+          {categoryGroups.map((group) => {
             const active = activeCats.includes(group.name);
             const expanded = expandedCats.includes(group.name);
             return (

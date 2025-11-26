@@ -38,6 +38,20 @@ export default async function ComerciosPage() {
 
   const listings = (data as any[] | null) || [];
 
+  // Construir categorias desde la base de datos
+  const catMap = new Map<string, Set<string>>();
+  listings.forEach((item) => {
+    const cat = (item?.categoria_principal as string | null) || null;
+    const sub = (item?.subcategoria as string | null) || null;
+    if (!cat) return;
+    if (!catMap.has(cat)) catMap.set(cat, new Set<string>());
+    if (sub) catMap.get(cat)!.add(sub);
+  });
+  const categoryGroups = Array.from(catMap.entries()).map(([name, subs]) => ({
+    name,
+    subs: Array.from(subs.values()),
+  }));
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0b0b0b] via-[#0b0b0b] to-[#050505] text-white">
       <Navbar />
@@ -48,7 +62,7 @@ export default async function ComerciosPage() {
             <h1 className="text-3xl font-semibold">Comercios y anuncios</h1>
           </div>
         </div>
-        <ComerciosClient listings={listings} />
+        <ComerciosClient listings={listings} categoryGroups={categoryGroups} />
       </div>
     </div>
   );

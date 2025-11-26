@@ -1,110 +1,13 @@
 ﻿"use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import AnnouncementImageUploader, { UploadedImage } from "@/components/announcement-image-uploader";
 import { FiInstagram } from "react-icons/fi";
 import { FaFacebookF, FaWhatsapp } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa6";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
-const categoryGroups = [
-  {
-    value: "alimentos-gastronomia",
-    label: "Alimentos y Gastronomia",
-    children: [
-      "Restaurantes",
-      "Comida rapida",
-      "Panaderias / pastelerias",
-      "Cafeterias",
-      "Foodtrucks",
-      "Comida casera",
-      "Reposteria",
-      "Jugos / helados / cafe",
-      "Delivery",
-    ],
-  },
-  {
-    value: "comercio-local",
-    label: "Comercio Local",
-    children: [
-      "Minimarket / almacen",
-      "Verduleria / fruteria",
-      "Tiendas de ropa o calzado",
-      "Tiendas de regalos",
-      "Papelerias / librerias",
-      "Jugueterias",
-      "Botillerias",
-      "Ferreterias",
-      "Bazar / hogar",
-      "Tiendas de mascotas",
-    ],
-  },
-  {
-    value: "servicios",
-    label: "Servicios",
-    children: [
-      "Servicios del hogar (gasfiteria, electricidad)",
-      "Servicios profesionales (abogados, contadores, diseno)",
-      "Servicios tecnicos (PC y celulares)",
-      "Fotografia / audiovisual",
-      "Transporte",
-      "Clases particulares",
-      "Belleza (peluqueria, barberia, manicure)",
-      "Salud / bienestar (masajes, kinesiologia, terapias)",
-    ],
-  },
-  {
-    value: "turismo-atractivos",
-    label: "Turismo y Atractivos",
-    children: [
-      "Miradores",
-      "Parques y naturaleza",
-      "Rutas patrimoniales",
-      "Museos y centros culturales",
-      "Centros turisticos",
-      "Alojamiento (cabanas / hostales)",
-      "Tours o actividades guiadas",
-    ],
-  },
-  {
-    value: "eventos-actividades",
-    label: "Eventos y Actividades",
-    children: [
-      "Eventos culturales",
-      "Ferias y mercados",
-      "Talleres y cursos",
-      "Actividades deportivas",
-      "Actividades comunitarias",
-      "Charlas / capacitaciones",
-      "Eventos para ninos",
-    ],
-  },
-  {
-    value: "artesania-creacion",
-    label: "Artesania y Creacion Local",
-    children: [
-      "Artesania tradicional",
-      "Manualidades",
-      "Arte / ilustracion",
-      "Joyeria artesanal",
-      "Costura / textil",
-      "Carpinteria",
-      "Ceramica",
-    ],
-  },
-  {
-    value: "instituciones-comunidad",
-    label: "Instituciones y Comunidad",
-    children: [
-      "Juntas de vecinos",
-      "Fundaciones",
-      "Centros comunitarios",
-      "Organizaciones sociales",
-      "Clubes deportivos",
-      "Programas municipales",
-    ],
-  },
-];
+type CategoryGroup = { name: string; subs: string[] };
 
 const socialFields = [
   { key: "instagram", label: "Instagram", placeholder: "@usuario", icon: FiInstagram },
@@ -118,6 +21,7 @@ const previewFallbackDescription =
 const STORAGE_BUCKET = "anuncios-imagenes";
 
 export default function AnnouncementForm({ userPhone }: { userPhone?: string | null }) {
+  const [categoryGroups, setCategoryGroups] = useState<CategoryGroup[]>([]);
   const [title, setTitle] = useState("");
   const [mainCategory, setMainCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
@@ -140,11 +44,29 @@ export default function AnnouncementForm({ userPhone }: { userPhone?: string | n
   });
   const [images, setImages] = useState<UploadedImage[]>([]);
 
-  const selectedGroup = useMemo(() => categoryGroups.find((g) => g.value === mainCategory) || null, [mainCategory]);
-  const subCategoryOptions = selectedGroup?.children || [];
+  const selectedGroup = useMemo(
+    () => categoryGroups.find((g) => g.name === mainCategory) || null,
+    [mainCategory, categoryGroups],
+  );
+  const subCategoryOptions = selectedGroup?.subs || [];
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/anuncios/categorias");
+        const payload = await res.json().catch(() => null);
+        if (res.ok && Array.isArray(payload?.data)) {
+          setCategoryGroups(payload.data as CategoryGroup[]);
+        }
+      } catch (e) {
+        console.warn("No se pudieron cargar las categorias", e);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const previewData = useMemo(() => {
-    const mainLabel = selectedGroup?.label || "";
+    const mainLabel = selectedGroup?.name || "";
     const subLabel = subCategory || "";
     const categoryDisplay = subLabel || mainLabel || "Categoria";
     return {
@@ -269,7 +191,7 @@ export default function AnnouncementForm({ userPhone }: { userPhone?: string | n
                       mainCategory ? "bg-white/5 text-white" : "bg-white/5 text-white/40"
                     }`}
                   >
-                    <span>{selectedGroup?.label || "Selecciona categoria"}</span>
+                    <span>{selectedGroup?.name || "Selecciona categoria"}</span>
                     <span className="text-lg text-white/70">›</span>
                   </button>
                   {isMainOpen && (
@@ -277,18 +199,18 @@ export default function AnnouncementForm({ userPhone }: { userPhone?: string | n
                       {categoryGroups.map((cat) => (
                         <button
                           type="button"
-                          key={cat.value}
+                          key={cat.name}
                           onClick={() => {
-                            setMainCategory(cat.value);
+                            setMainCategory(cat.name);
                             setSubCategory("");
                             setIsMainOpen(false);
                             setIsSubOpen(false);
                           }}
                           className={`block w-full px-4 py-3 text-left text-base text-white/90 hover:bg-white/10 ${
-                            mainCategory === cat.value ? "bg-white/10 font-semibold" : ""
+                            mainCategory === cat.name ? "bg-white/10 font-semibold" : ""
                           }`}
                         >
-                          {cat.label}
+                          {cat.name}
                         </button>
                       ))}
                     </div>
