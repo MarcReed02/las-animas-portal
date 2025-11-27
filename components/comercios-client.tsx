@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Image from "next/image";
-import { PiHeartBold, PiMapPin, PiPhoneCall, PiClock } from "react-icons/pi";
-import { FiInstagram, FiSearch, FiChevronDown } from "react-icons/fi";
-import { FaFacebookF, FaWhatsapp } from "react-icons/fa";
-import { FaTiktok } from "react-icons/fa6";
+import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { useTheme } from 'next-themes';
+import {
+  Search, MapPin, ArrowUpRight, Clock, Phone,
+  Instagram, Facebook, Globe, Music, MessageCircle, Twitter,
+  ChevronDown, Filter, X, RefreshCcw, Home, Sun, Moon
+} from 'lucide-react';
 
 type Listing = {
   id: string;
@@ -24,6 +26,11 @@ type Listing = {
   anuncio_solicitud_imagenes?: { url: string; orden: number | null }[];
 };
 
+type CategoryGroup = {
+  name: string;
+  subs: string[];
+};
+
 function firstImage(listing: Listing) {
   if (listing.anuncio_solicitud_imagenes?.length) {
     const sorted = [...listing.anuncio_solicitud_imagenes].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
@@ -32,240 +39,436 @@ function firstImage(listing: Listing) {
   return null;
 }
 
-function Card({ listing }: { listing: Listing }) {
-  const image = firstImage(listing);
-  return (
-    <div className="group rounded-3xl border border-white/10 bg-[#0c0c0c] shadow-2xl overflow-hidden text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-25px_rgba(0,0,0,0.8)]">
-      <div className="relative h-44 w-full overflow-hidden">
-        {image ? (
-          <Image src={image} alt={listing.titulo} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-white/40">Sin imagen</div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/70" />
-      </div>
-      <div className="p-4 space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {listing.categoria_principal && (
-            <span className="inline-flex rounded-full bg-green-900/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-green-200">
-              {listing.categoria_principal}
-            </span>
-          )}
-          {listing.subcategoria && (
-            <span className="inline-flex rounded-full bg-green-900/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-green-100">
-              {listing.subcategoria}
-            </span>
-          )}
-        </div>
-        <h3 className="text-lg font-semibold leading-tight text-white break-words whitespace-pre-wrap">
-          {listing.titulo}
-        </h3>
-        {listing.descripcion && (
-          <p className="text-sm text-white/65 break-words whitespace-pre-wrap">{listing.descripcion}</p>
-        )}
-        <div className="mt-2 space-y-2 border-t border-white/10 pt-3 text-xs text-white/75">
-          <div className="inline-flex items-center gap-2">
-            <PiClock className="h-4 w-4" />
-            <span className="italic break-words whitespace-pre-wrap">
-              {listing.horario || "Horario por confirmar"}
-            </span>
-          </div>
-          <div className="inline-flex items-center gap-2">
-            <PiMapPin className="h-4 w-4" />
-            <span className="break-words whitespace-pre-wrap">
-              {listing.direccion || "Direccion no especificada"}
-            </span>
-          </div>
-          {listing.mostrar_telefono && listing.telefono_snapshot && (
-            <div className="inline-flex items-center gap-2">
-              <PiPhoneCall className="h-4 w-4" /> {listing.telefono_snapshot}
-            </div>
-          )}
-        </div>
-        {(listing.instagram || listing.facebook || listing.whatsapp || listing.tiktok) && (
-          <div className="pt-2">
-            <p className="text-[11px] uppercase tracking-wide text-white/50">Social</p>
-            <div className="mt-2 flex items-center gap-3 text-white/80">
-              {listing.instagram && (
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-transform duration-150 hover:scale-110">
-              <FiInstagram className="h-4 w-4" />
-            </span>
-          )}
-          {listing.facebook && (
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-transform duration-150 hover:scale-110">
-              <FaFacebookF className="h-4 w-4" />
-            </span>
-          )}
-          {listing.whatsapp && (
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-transform duration-150 hover:scale-110">
-              <FaWhatsapp className="h-4 w-4" />
-            </span>
-          )}
-          {listing.tiktok && (
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5 transition-transform duration-150 hover:scale-110">
-              <FaTiktok className="h-4 w-4" />
-            </span>
-          )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[], categoryGroups: CategoryGroup[] }) => {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [activeCategory, setActiveCategory] = useState('Todos');
+  const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [mounted, setMounted] = useState(false);
 
-const CATEGORY_GROUPS = [
-  {
-    name: "Restaurantes y Gastronomía",
-    subs: ["Restaurantes", "Comida rápida", "Pizzerías", "Comida casera", "Pastelerías"],
-  },
-  { name: "Cafeterías y Panaderías", subs: ["Cafeterías", "Panaderías"] },
-  { name: "Minimarkets y Almacenes", subs: ["Abarrotes", "Minimarkets", "Kioskos"] },
-  { name: "Supermercados", subs: ["Supermercados"] },
-  { name: "Ropa y Accesorios", subs: ["Tiendas de ropa", "Calzado", "Accesorios"] },
-  { name: "Belleza y Cuidado Personal", subs: ["Peluquerías", "Barberías", "Manicure y Spa"] },
-  { name: "Servicios Profesionales", subs: ["Servicios técnicos", "Servicios de reparación", "Profesionales independientes"] },
-  { name: "Ferreterías y Materiales", subs: ["Ferreterías", "Materiales de construcción"] },
-  { name: "Hogar y Electrodomésticos", subs: ["Electrodomésticos", "Electrónica", "Muebles y decoración"] },
-  { name: "Librerías y Papelerías", subs: ["Librerías", "Papelerías"] },
-  { name: "Salud y Bienestar", subs: ["Farmacias", "Ópticas", "Centros de salud"] },
-  { name: "Turismo y Alojamiento", subs: ["Hospedajes", "Hostales", "Cabañas", "Servicios turísticos"] },
-];
-
-export default function ComerciosClient({
-  listings,
-  categoryGroups,
-}: {
-  listings: Listing[];
-  categoryGroups: { name: string; subs: string[] }[];
-}) {
-  const [search, setSearch] = useState("");
-  const [activeCats, setActiveCats] = useState<string[]>([]);
-  const [activeSubs, setActiveSubs] = useState<string[]>([]);
-  const [expandedCats, setExpandedCats] = useState<string[]>(() => categoryGroups.map((c) => c.name));
-
-  const categories = useMemo(() => categoryGroups.map((c) => c.name), [categoryGroups]);
-  const subcategories = useMemo(
-    () => Array.from(new Set(categoryGroups.flatMap((c) => c.subs))),
-    [categoryGroups],
-  );
-
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return listings.filter((l) => {
-      const matchesCat = activeCats.length === 0 || activeCats.includes(l.categoria_principal || "");
-      const matchesSub = activeSubs.length === 0 || activeSubs.includes(l.subcategoria || "");
-      const text = `${l.titulo} ${l.descripcion} ${l.categoria_principal} ${l.subcategoria}`.toLowerCase();
-      const matchesSearch = term ? text.includes(term) : true;
-      return matchesCat && matchesSub && matchesSearch;
-    });
-  }, [listings, search, activeCats, activeSubs]);
-
-  const toggleCat = (cat: string) => {
-    setActiveCats((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
-  };
-
-  const toggleSub = (sub: string) => {
-    setActiveSubs((prev) => (prev.includes(sub) ? prev.filter((c) => c !== sub) : [...prev, sub]));
-  };
-
-  const toggleExpanded = (cat: string) => {
-    setExpandedCats((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
-  };
+  // Efecto para activar animaciones al montar
+  useEffect(() => {
+    setIsLoaded(true);
+    setMounted(true);
+  }, []);
 
   const clearFilters = () => {
-    setActiveCats([]);
-    setActiveSubs([]);
-    setSearch("");
+    setActiveCategory('Todos');
+    setActiveSubCategory(null);
+    setSearchTerm('');
+    setMobileMenuOpen(false);
   };
 
+  // Map Supabase data to the structure used in the design (for easier rendering)
+  const businesses = useMemo(() => listings.map(l => ({
+    id: l.id,
+    name: l.titulo,
+    category: l.categoria_principal || "Sin categoría",
+    subcategory: l.subcategoria || "General",
+    description: l.descripcion || "",
+    image: firstImage(l) || "https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?auto=format&fit=crop&q=80",
+    address: l.direccion || "Dirección no disponible",
+    phone: l.telefono_snapshot || "",
+    hours: l.horario || "Horario no disponible",
+    status: 'open', // Placeholder
+    socials: {
+      instagram: l.instagram,
+      facebook: l.facebook,
+      whatsapp: l.whatsapp,
+      tiktok: l.tiktok,
+      web: null
+    }
+  })), [listings]);
+
+  const filteredBusinesses = businesses.filter(biz => {
+    const matchCategory = activeCategory === 'Todos' || biz.category === activeCategory;
+    const matchSubCategory = !activeSubCategory || biz.subcategory === activeSubCategory;
+    const matchSearch = biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      biz.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchCategory && matchSubCategory && matchSearch;
+  });
+
+  const isDarkMode = resolvedTheme === 'dark';
+
+  // Theme Variables
+  const bgPage = isDarkMode ? 'bg-[#171717]' : 'bg-[#f5f5f5]';
+  const textPrimary = isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]';
+  const textSecondary = isDarkMode ? 'text-[#888]' : 'text-[#666]';
+  const bgCard = isDarkMode ? 'bg-[#202020]' : 'bg-white';
+  const borderColor = isDarkMode ? 'border-[#262626]' : 'border-[#e5e5e5]';
+  const bgHeader = isDarkMode ? 'bg-[#171717]/95' : 'bg-white/95';
+  const bgInput = isDarkMode ? 'bg-[#262626]' : 'bg-[#f0f0f0]';
+  const hoverBg = isDarkMode ? 'hover:bg-[#262626]' : 'hover:bg-[#e5e5e5]';
+
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr] transition-opacity duration-300">
-      <aside className="rounded-3xl border border-white/10 bg-[#0c0c0c] p-5 space-y-4">
-        <div className="space-y-3">
-          <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 h-4 w-4" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar comercios..."
-              className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-3 py-3 text-sm text-white placeholder:text-white/50 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.5)] focus:outline-none focus:ring-2 focus:ring-white/20 transition-colors duration-200"
-            />
-          </div>
-          <div className="flex items-center justify-between text-xs uppercase tracking-wide text-white/60">
-            <span>Filtrar</span>
+    <div className={`min-h-screen ${bgPage} ${textPrimary} font-sans selection:bg-[#DA0037] selection:text-white overflow-x-hidden flex flex-col transition-colors duration-500`}>
+      {/* Importación de fuente y estilos auxiliares que Tailwind no cubre por defecto sin plugins */}
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+          body { font-family: 'Inter', sans-serif; }
+          /* Firefox */
+          .custom-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: ${isDarkMode ? '#404040 transparent' : '#ccc transparent'};
+          }
+          /* Webkit */
+          .custom-scroll::-webkit-scrollbar { width: 4px; }
+          .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+          .custom-scroll::-webkit-scrollbar-thumb { background: ${isDarkMode ? '#404040' : '#ccc'}; border-radius: 4px; }
+          .custom-scroll::-webkit-scrollbar-thumb:hover { background: ${isDarkMode ? '#555' : '#bbb'}; }
+          
+          .category-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          .category-btn:hover {
+            transform: translateX(2px);
+          }
+          /* Layout Variables */
+          :root {
+            --navbar-height: 5rem;
+            --header-height: 5rem;
+            --sidebar-top: calc(var(--navbar-height) + var(--header-height));
+          }
+        `}
+      </style>
+
+      {/* --- HEADER --- */}
+      <header className={`sticky top-0 z-30 ${bgHeader} backdrop-blur-xl border-b ${borderColor} transition-all duration-300`}>
+        <div className="max-w-7xl mx-auto px-6 md:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            {/* Botón Menú Móvil */}
             <button
-              type="button"
-              onClick={clearFilters}
-              className="text-[12px] text-blue-300 hover:text-blue-200 transition-colors duration-150"
+              className={`md:hidden ${textPrimary} hover:text-[#DA0037] transition-colors p-1`}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              Limpiar filtros
+              {mobileMenuOpen ? <X size={24} /> : <Filter size={24} />}
             </button>
+
+            {/* TÍTULO REDISEÑADO (Estilo Arquitectónico/Moderno) */}
+            <div className="flex flex-col justify-center group cursor-default select-none">
+              <span className="text-[#DA0037] text-[10px] font-bold uppercase tracking-[0.3em] leading-none mb-1.5 transition-all duration-500 group-hover:tracking-[0.5em] group-hover:text-white">
+                Directorio
+              </span>
+              <h1 className={`text-2xl md:text-3xl font-black ${textPrimary} tracking-widest uppercase leading-none group-hover:text-[#DA0037] transition-colors duration-300`}>
+                Comercios
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Barra de Búsqueda Desktop */}
+            <div className="relative group w-full max-w-sm hidden md:block">
+              <input
+                type="text"
+                placeholder="Buscar comercio..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full ${bgInput} border border-transparent focus:border-[#DA0037] ${textPrimary} py-2.5 pl-5 pr-10 text-sm rounded-full focus:outline-none transition-all duration-300 placeholder-[#999] group-hover:brightness-95 shadow-inner`}
+              />
+              <Search className="absolute right-4 top-3 text-[#999] group-focus-within:text-[#DA0037] transition-colors" size={18} />
+            </div>
+
+            {/* Botón Home */}
+            <Link
+              href="/"
+              className={`p-2 rounded-full ${bgInput} ${textSecondary} hover:text-[#DA0037] hover:brightness-95 transition-all`}
+              title="Volver al inicio"
+            >
+              <Home size={18} />
+            </Link>
+
+            {/* Botón Theme Toggle */}
+            {mounted && (
+              <button
+                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                className={`p-2 rounded-full ${bgInput} ${textSecondary} hover:text-[#DA0037] hover:brightness-95 transition-all`}
+                title="Cambiar tema"
+              >
+                {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            )}
           </div>
         </div>
-        <div className="space-y-4 text-sm text-white/80">
-          {categories.length === 0 && <p className="text-white/50">Sin categorias</p>}
-          {categoryGroups.map((group) => {
-            const active = activeCats.includes(group.name);
-            const expanded = expandedCats.includes(group.name);
-            return (
-              <div
-                key={group.name}
-                className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 space-y-3 shadow-inner transition-transform duration-300 hover:-translate-y-0.5"
-              >
+      </header>
+
+      <div className="max-w-7xl mx-auto w-full flex flex-1 items-start">
+
+        {/* --- SIDEBAR FILTROS --- */}
+        <aside className={`
+          fixed inset-y-0 left-0 z-20 w-72 ${bgPage} border-r ${borderColor} transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:h-[calc(100vh-85px)] md:sticky md:top-[85px] overflow-y-auto custom-scroll
+          ${mobileMenuOpen ? 'translate-x-0 pt-24 shadow-2xl' : '-translate-x-full pt-0 md:pt-8'}
+        `}>
+          <div className="px-6 pb-8 md:pt-0">
+            {/* Buscador Móvil */}
+            <div className="mb-8 block md:hidden">
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full ${bgInput} ${textPrimary} py-3 px-4 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#DA0037]`}
+              />
+            </div>
+
+            <div className="flex justify-between items-center mb-6 px-2">
+              <h3 className={`text-xs font-bold ${textSecondary} uppercase tracking-widest`}>Categorías</h3>
+
+              {(activeCategory !== 'Todos' || activeSubCategory || searchTerm) && (
                 <button
-                  type="button"
-                  onClick={() => {
-                    toggleCat(group.name);
-                    toggleExpanded(group.name);
-                  }}
-                  className="flex w-full items-center justify-between text-base font-semibold text-left"
+                  onClick={clearFilters}
+                  className="text-[10px] text-[#DA0037] hover:text-[#b3002d] flex items-center gap-1 transition-colors font-bold uppercase tracking-wider"
                 >
-                  <span className={active ? "text-white" : "text-white/80"}>{group.name}</span>
-                  <FiChevronDown
-                    className={`h-4 w-4 text-white/60 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-                  />
+                  <RefreshCcw size={10} /> Limpiar
                 </button>
-                {expanded && (
-                  <div className="flex flex-wrap gap-2 pl-1">
-                    {group.subs.map((sub) => {
-                      const subActive = activeSubs.includes(sub);
-                      return (
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => { setActiveCategory('Todos'); setActiveSubCategory(null); setMobileMenuOpen(false); }}
+                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 border border-transparent ${activeCategory === 'Todos'
+                  ? 'bg-[#DA0037] text-white shadow-lg shadow-red-900/20 translate-x-1'
+                  : `${textSecondary} ${hoverBg} hover:translate-x-1`
+                  }`}
+              >
+                Todos los comercios
+              </button>
+
+              {categoryGroups.map((cat) => (
+                <div key={cat.name} className="space-y-1">
+                  <button
+                    onClick={() => setActiveCategory(activeCategory === cat.name ? 'Todos' : cat.name)}
+                    className={`category-btn w-full flex justify-between items-center px-4 py-3 rounded-lg text-sm font-medium border border-transparent ${activeCategory === cat.name
+                      ? `text-white ${isDarkMode ? 'bg-[#262626] border-[#333]' : 'bg-[#e5e5e5] border-[#d4d4d4]'}`
+                      : `${textSecondary} ${hoverBg}`
+                      }`}
+                  >
+                    {cat.name === 'Restaurantes y Gastronomía' ? 'Restaurantes' : cat.name}
+                    <ChevronDown size={14} className={`transition-transform duration-300 ${activeCategory === cat.name ? 'rotate-180 text-[#DA0037]' : ''}`} />
+                  </button>
+
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${activeCategory === cat.name ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className={`pl-4 pr-2 py-1 space-y-1 border-l ${isDarkMode ? 'border-[#333]' : 'border-[#ddd]'} ml-4`}>
+                      {cat.subs.map((sub) => (
                         <button
                           key={sub}
-                          type="button"
-                          onClick={() => toggleSub(sub)}
-                          className={`rounded-xl px-3 py-1 text-xs font-semibold transition-colors duration-200 ${
-                            subActive
-                              ? "bg-white/15 text-white border border-white/40"
-                              : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-                          }`}
+                          onClick={() => { setActiveSubCategory(sub); setMobileMenuOpen(false); }}
+                          className={`w-full text-left px-4 py-2 text-sm rounded-md transition-all duration-200 flex items-center gap-2 ${activeSubCategory === sub
+                            ? 'text-[#DA0037] bg-[#DA0037]/10 font-medium translate-x-1'
+                            : `${textSecondary} hover:${textPrimary} hover:translate-x-1`
+                            }`}
                         >
+                          <div className={`w-1.5 h-1.5 rounded-full transition-colors ${activeSubCategory === sub ? 'bg-[#DA0037]' : (isDarkMode ? 'bg-[#444]' : 'bg-[#ccc]')}`}></div>
                           {sub}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* --- MAIN CONTENT --- */}
+        <main className="flex-1 px-4 md:px-8 py-8 md:py-12 w-full">
+
+          <div className="flex flex-col md:flex-row justify-between md:items-end mb-8 gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className={`text-3xl font-bold ${textPrimary} tracking-tight animate-in slide-in-from-left-4 duration-500`}>
+                  {activeSubCategory || activeCategory}
+                </h2>
+                {(activeSubCategory || activeCategory !== 'Todos') && (
+                  <span className="bg-[#DA0037] text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide animate-in zoom-in duration-300">
+                    Filtrado
+                  </span>
                 )}
               </div>
-            );
-          })}
-        </div>
-      </aside>
-
-      <div className="space-y-6">
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-white/70">
-            No hay resultados con los filtros aplicados.
+              <p className={`${textSecondary} text-sm`}>Explora las mejores opciones del barrio</p>
+            </div>
           </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((listing) => (
-              <Card key={listing.id} listing={listing} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            {filteredBusinesses.map((biz, index) => (
+              <div
+                key={biz.id}
+                className={`
+                  ${bgCard} rounded-xl overflow-hidden 
+                  hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] 
+                  transition-all duration-500 group border ${borderColor} hover:border-[#DA0037]/30
+                  flex flex-col hover:-translate-y-2
+                  ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
+                `}
+                style={{ transitionDelay: `${index * 100}ms` }}
+              >
+
+                {/* Imagen Cover */}
+                <div className={`relative h-52 overflow-hidden ${isDarkMode ? 'bg-[#111]' : 'bg-[#eee]'}`}>
+                  {biz.image ? (
+                    <img
+                      src={biz.image}
+                      alt={biz.name}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 opacity-90 group-hover:opacity-100"
+                    />
+                  ) : (
+                    <div className={`w-full h-full flex items-center justify-center ${textSecondary} opacity-30`}>Sin imagen</div>
+                  )}
+                  <div className={`absolute inset-0 bg-gradient-to-t ${isDarkMode ? 'from-[#202020] via-[#202020]/20' : 'from-white via-white/20'} to-transparent opacity-90`}></div>
+                </div>
+
+                {/* Contenido Principal */}
+                <div className="p-7 flex-1 flex flex-col -mt-12 relative z-10">
+                  <div className="mb-5">
+                    <span className="text-[#DA0037] text-[10px] font-bold uppercase tracking-wider mb-2 block opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 delay-75">
+                      {biz.category} • {biz.subcategory}
+                    </span>
+                    <h3 className={`text-2xl font-bold ${textPrimary} group-hover:text-[#DA0037] transition-colors mb-3 leading-tight break-words`}>
+                      {biz.name}
+                    </h3>
+                    <p className={`${textSecondary} text-sm font-light leading-relaxed line-clamp-3 group-hover:${textPrimary} transition-colors break-words`}>
+                      {biz.description}
+                    </p>
+                  </div>
+
+                  {/* Bloque de Información */}
+                  <div className={`space-y-3 mt-auto pt-5 border-t ${isDarkMode ? 'border-[#333]/50' : 'border-[#eee]'}`}>
+                    <div className={`flex items-start gap-3 text-sm ${textSecondary} group/item`}>
+                      <MapPin size={16} className={`${isDarkMode ? 'text-[#555]' : 'text-[#999]'} group-hover/item:text-[#DA0037] transition-colors mt-0.5 flex-shrink-0`} />
+                      <span className="font-light break-words">{biz.address}</span>
+                    </div>
+                    {biz.phone && (
+                      <div className={`flex items-center gap-3 text-sm ${textSecondary} group/item`}>
+                        <Phone size={16} className={`${isDarkMode ? 'text-[#555]' : 'text-[#999]'} group-hover/item:text-[#DA0037] transition-colors flex-shrink-0`} />
+                        <span className={`font-light hover:${textPrimary} cursor-pointer transition-colors break-words`}>{biz.phone}</span>
+                      </div>
+                    )}
+                    <div className={`flex items-center gap-3 text-sm ${textSecondary} group/item`}>
+                      <Clock size={16} className={`${isDarkMode ? 'text-[#555]' : 'text-[#999]'} group-hover/item:text-[#DA0037] transition-colors flex-shrink-0`} />
+                      <span className="font-light break-words">{biz.hours}</span>
+                    </div>
+                  </div>
+
+                  {/* Redes Sociales (Barra Inferior) */}
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="flex gap-2">
+                      {biz.socials.instagram && (
+                        <a href={biz.socials.instagram} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full ${isDarkMode ? 'bg-[#2a2a2a] text-[#888]' : 'bg-[#f0f0f0] text-[#666]'} hover:text-white hover:bg-gradient-to-tr hover:from-yellow-500 hover:via-pink-500 hover:to-purple-500 transition-all duration-300 hover:scale-110`} title="Instagram">
+                          <Instagram size={16} />
+                        </a>
+                      )}
+                      {biz.socials.facebook && (
+                        <a href={biz.socials.facebook} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full ${isDarkMode ? 'bg-[#2a2a2a] text-[#888]' : 'bg-[#f0f0f0] text-[#666]'} hover:text-white hover:bg-[#1877F2] transition-all duration-300 hover:scale-110`} title="Facebook">
+                          <Facebook size={16} />
+                        </a>
+                      )}
+                      {biz.socials.whatsapp && (
+                        <a href={biz.socials.whatsapp} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full ${isDarkMode ? 'bg-[#2a2a2a] text-[#888]' : 'bg-[#f0f0f0] text-[#666]'} hover:text-white hover:bg-[#25D366] transition-all duration-300 hover:scale-110`} title="WhatsApp">
+                          <MessageCircle size={16} />
+                        </a>
+                      )}
+                      {biz.socials.tiktok && (
+                        <a href={biz.socials.tiktok} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full ${isDarkMode ? 'bg-[#2a2a2a] text-[#888]' : 'bg-[#f0f0f0] text-[#666]'} hover:text-white hover:bg-black hover:shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all duration-300 hover:scale-110`} title="TikTok">
+                          <Music size={16} />
+                        </a>
+                      )}
+                      {biz.socials.web && (
+                        <a href={biz.socials.web} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full ${isDarkMode ? 'bg-[#2a2a2a] text-[#888]' : 'bg-[#f0f0f0] text-[#666]'} hover:text-white hover:bg-[#333] border border-transparent hover:border-[#555] transition-all duration-300 hover:scale-110`} title="Sitio Web">
+                          <Globe size={16} />
+                        </a>
+                      )}
+                    </div>
+
+                    <button className={`hover:text-[#DA0037] text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all group/btn ${textPrimary}`}>
+                      Ver Perfil <ArrowUpRight size={14} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-        )}
+        </main>
       </div>
+
+      {/* --- FOOTER --- */}
+      <footer className={`border-t ${isDarkMode ? 'bg-[#171717] border-[#444444]' : 'bg-[#EDEDED] border-[#EDEDED]'} mt-auto relative z-20`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div className="col-span-1 md:col-span-1">
+              <div className="mb-6 opacity-80">
+                {/* LOGO FOOTER: TEXTO */}
+                <div className="flex flex-col justify-start cursor-pointer">
+                  <span className={`text-xl font-black tracking-tighter leading-none ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
+                    PORTAL
+                  </span>
+                  <span className={`text-xs font-bold tracking-[0.2em] uppercase leading-none text-[#DA0037]`}>
+                    ANIMAS
+                  </span>
+                </div>
+              </div>
+              <p className={`text-sm mb-6 ${textSecondary}`}>
+                Plataforma oficial para el fortalecimiento del comercio y turismo.
+                Apoyado por INACAP y la Cámara de Comercio.
+              </p>
+              <div className="flex gap-4">
+                {[Facebook, Twitter, Instagram, MessageCircle].map((Icon, i) => (
+                  <a key={i} href="#" className={`transition-colors hover:text-[#DA0037] ${isDarkMode ? 'text-[#444]' : 'text-[#9ca3af]'}`}>
+                    <Icon size={20} />
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h5 className={`font-bold mb-4 ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>Portal</h5>
+              <ul className="space-y-2 text-sm">
+                {['Directorio Comercial', 'Agenda Cultural', 'Proyectos Urbanos', 'Mapa del Barrio'].map(link => (
+                  <li key={link}>
+                    <a href="#" className={`hover:text-[#DA0037] transition-colors ${textSecondary}`}>{link}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h5 className={`font-bold mb-4 ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>Institucional</h5>
+              <ul className="space-y-2 text-sm">
+                {['Cámara de Comercio', 'Transparencia', 'Contacto', 'Acceso Editores'].map(link => (
+                  <li key={link}>
+                    <a href="#" className={`hover:text-[#DA0037] transition-colors ${textSecondary}`}>{link}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h5 className={`font-bold mb-4 ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>Comunidad</h5>
+              <p className={`text-xs mb-4 ${textSecondary}`}>Recibe actualizaciones sobre eventos y nuevos comercios.</p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Tu correo"
+                  className={`w-full px-4 py-2 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#DA0037] ${isDarkMode ? 'bg-[#171717] text-[#EDEDED] border border-[#444444]' : 'bg-white text-[#171717] border border-[#444444]'}`}
+                />
+                <button className="bg-[#DA0037] hover:bg-[#b3002d] text-white p-2 rounded transition-colors">
+                  <ArrowUpRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className={`pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4 text-xs ${isDarkMode ? 'border-[#444444] text-[#EDEDED]/40' : 'border-[#d4d4d4] text-[#444444]'}`}>
+            <p>&copy; 2025 Portal Las Ánimas. Proyecto de Título INACAP.</p>
+            <p>Desarrollado con Next.js + Tailwind.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
-}
+};
+
+export default CommerceViewModern;

@@ -2,12 +2,22 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { FaEye, FaEyeSlash } from "react-icons/fa6";
-import { TbFileUpload } from "react-icons/tb";
-import punycode from "punycode/";
+import {
+  User,
+  Store,
+  MapPin,
+  Eye,
+  EyeOff,
+  UploadCloud,
+  FileText,
+  CheckCircle2,
+  ArrowRight
+} from "lucide-react";
+import punycode from "punycode";
 import { formatRutCapped, normalizeRut, validateRut } from "@/lib/rut";
 import { createClient } from "@/lib/supabase/client";
 import { hashPassword } from "@/lib/password";
+import NavbarNew from "@/components/navbar-new";
 
 type PasswordCheck = {
   score: number;
@@ -15,7 +25,6 @@ type PasswordCheck = {
 };
 
 const PHONE_CODE = "+56";
-const PHONE_ISO = "CL";
 
 const bannedPasswordRanges = [
   [0x0000, 0x001f],
@@ -35,6 +44,7 @@ export default function Page() {
   const [rut, setRut] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [fantasyName, setFantasyName] = useState(""); // New field, currently not sent to DB
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,11 +53,26 @@ export default function Page() {
   const [status, setStatus] = useState<null | "ok" | "err">(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const supabase = createClient();
 
   const passwordCheck: PasswordCheck = useMemo(() => evaluatePassword(password), [password]);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    } else if (e.type === "drop") {
+      setDragActive(false);
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleUpload(e.dataTransfer.files[0]);
+      }
+    }
+  };
 
   const handleUpload = (selected: File | null) => {
     if (!selected) return;
@@ -82,29 +107,22 @@ export default function Page() {
       const normalizedRut = normalizeRut(rut);
       const normalizedEmail = normalizeEmail(email);
       const normalizedAddress = normalizeAddress(address);
-      console.log("[registro] generando hash de contrasena segura");
       const passwordHash = await hashPassword(password);
-      console.log("[registro] hash calculado");
       const nationalNumber = phone.replace(/\D/g, "");
       const e164Phone = `${PHONE_CODE}${nationalNumber}`;
+
       let documentoUrl: string | null = null;
-        if (file) {
-          const uniqueId =
-            typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-              ? crypto.randomUUID()
-              : Date.now().toString();
-          const path = `solicitudes/${uniqueId}-${file.name}`;
-          console.log("[registro] Subiendo documento...", { path, fileName: file.name, size: file.size });
-          const { error: uploadError } = await supabase.storage.from("documentos").upload(path, file);
-          if (uploadError) {
-            console.error("[registro] Error subiendo documento", uploadError);
-            throw uploadError;
-          }
-          const { data } = supabase.storage.from("documentos").getPublicUrl(path);
-          documentoUrl = data.publicUrl;
-          console.log("[registro] Documento subido con exito", { documentoUrl });
-          setProgress(100);
-        }
+      if (file) {
+        const uniqueId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : Date.now().toString();
+        const path = `solicitudes/${uniqueId}-${file.name}`;
+        const { error: uploadError } = await supabase.storage.from("documentos").upload(path, file);
+        if (uploadError) throw uploadError;
+        const { data } = supabase.storage.from("documentos").getPublicUrl(path);
+        documentoUrl = data.publicUrl;
+        setProgress(100);
+      }
 
       const payload = {
         nombres: normalizedFirstName,
@@ -116,44 +134,29 @@ export default function Page() {
         documento_url: documentoUrl,
         estado: "pendiente",
         password_hash: passwordHash,
+        // nombre_fantasia: fantasyName // Not in DB yet
       };
-      console.log("[registro] Insertando solicitud...", payload);
-      const { error: insertError } = await supabase.from("solicitudes_registro").insert({
-        ...payload,
-      });
+
+      const { error: insertError } = await supabase.from("solicitudes_registro").insert({ ...payload });
+
       if (insertError) {
         if (insertError.code === "23505") {
-          console.warn("[registro] correo duplicado en solicitud", insertError);
           setErrors((prev) => ({
             ...prev,
-            email: "Ya existe una solicitud con este correo. Si ya enviaste una, espera a que la revisemos.",
+            email: "Ya existe una solicitud con este correo.",
           }));
           return;
         }
-        console.error("[registro] ERROR COMPLETO AL INSERTAR:", {
-          mensaje: insertError?.message,
-          detalles: insertError?.details,
-          hint: insertError?.hint,
-          codigo: insertError?.code,
-          stack: insertError?.stack,
-          error_completo: JSON.stringify(insertError, null, 2),
-        });
         throw insertError;
       }
-      console.log("[registro] Solicitud creada correctamente");
+
       setStatus("ok");
-      setFirstName("");
-      setLastName("");
-      setRut("");
-      setPhone("");
-      setEmail("");
-      setAddress("");
-      setPassword("");
-      setConfirmPassword("");
-      setFile(null);
-      setProgress(null);
+      // Reset form
+      setFirstName(""); setLastName(""); setRut(""); setPhone("");
+      setAddress(""); setFantasyName(""); setEmail(""); setPassword("");
+      setConfirmPassword(""); setFile(null); setProgress(null);
     } catch (err) {
-      console.error("[registro] Error en proceso de registro", err);
+      console.error(err);
       setStatus("err");
     } finally {
       setLoading(false);
@@ -161,229 +164,261 @@ export default function Page() {
   };
 
   return (
-    <div className="flex min-h-[calc(100svh-4rem)] w-full items-center justify-center bg-[#0B0B0B] px-4 py-16 text-white">
-      <div className="w-full max-w-md">
-        <form
-          onSubmit={onSubmit}
-          className="space-y-6 rounded-[32px] border border-white/10 bg-[#0B0B0B] px-6 py-8 text-white"
-        >
-          <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold md:text-4xl">Ingresar Registro</h1>
-            <p className="text-sm text-white/60 md:text-base">Completa con tu informacion</p>
+    <div className="min-h-screen flex flex-col lg:flex-row bg-white dark:bg-[#171717] font-sans text-[#171717] dark:text-[#EDEDED] transition-colors duration-300">
+      <NavbarNew />
+
+      {/* --- COLUMNA IZQUIERDA: VISUAL & BRANDING --- */}
+      <div className="hidden lg:flex lg:w-5/12 relative overflow-hidden bg-[#f0f0f0] dark:bg-[#0f0f0f] pt-20">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1569388330292-79cc1ec67270?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-20 dark:opacity-40 grayscale mix-blend-multiply dark:mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-transparent to-white/20 dark:from-[#171717] dark:via-transparent dark:to-[#171717]/50"></div>
+
+        <div className="relative z-10 w-full h-full flex flex-col justify-between p-12">
+          <div className="mt-8">
+            {/* Content pushed down by navbar */}
           </div>
 
-          <div className="space-y-6">
-            <FieldWrapper label="Nombres" error={errors.firstName}>
-              <input
-                type="text"
-                required
-                autoComplete="given-name"
-                value={firstName}
-                onChange={(e) => setFirstName(formatNameInput(e.target.value))}
-                onBlur={(e) => setFirstName(finalizeName(e.target.value))}
-                placeholder="Ej: Juan Antonio"
-                aria-invalid={Boolean(errors.firstName)}
-                className={inputClass(errors.firstName)}
-              />
-            </FieldWrapper>
+          <div className="mb-12">
+            <div className="w-12 h-1 bg-[#DA0037] mb-6"></div>
+            <h1 className="text-4xl font-bold text-[#171717] dark:text-white mb-4 leading-tight">
+              Impulsa tu negocio en el corazón de Valdivia.
+            </h1>
+            <p className="text-[#444444] dark:text-[#EDEDED]/60 text-lg max-w-md">
+              Únete a la red oficial de comercio, aumenta tu visibilidad y conecta con miles de vecinos y turistas cada día.
+            </p>
 
-            <FieldWrapper label="Apellidos" error={errors.lastName}>
-              <input
-                type="text"
-                required
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(e) => setLastName(formatNameInput(e.target.value))}
-                onBlur={(e) => setLastName(finalizeName(e.target.value))}
-                placeholder="Ej: Perez Soto"
-                aria-invalid={Boolean(errors.lastName)}
-                className={inputClass(errors.lastName)}
-              />
-            </FieldWrapper>
-
-            <FieldWrapper label="RUT" error={errors.rut}>
-              <input
-                type="text"
-                required
-                autoComplete="off"
-                value={rut}
-                onChange={(e) => setRut(formatRutInput(e.target.value))}
-                onBlur={(e) => setRut(formatRutInput(e.target.value))}
-                maxLength={12}
-                placeholder="12.345.678-9"
-                aria-invalid={Boolean(errors.rut)}
-                className={inputClass(errors.rut)}
-              />
-            </FieldWrapper>
-
-            <FieldWrapper label="Telefono" error={errors.phone}>
-              <div
-                className={`flex overflow-hidden rounded-2xl border text-sm transition focus-within:ring-2 ${
-                  errors.phone
-                    ? "border-[#ff3b30]/80 bg-[#1a0d0d] focus-within:border-[#ff3b30] focus-within:ring-[#ff3b30]/30"
-                    : "border-white/15 bg-[#111111] focus-within:border-white/40 focus-within:ring-white/15"
-                }`}
-              >
-                <span className="flex items-center border-r border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white">
-                  {PHONE_CODE}
-                </span>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="telefono"
-                  value={phone}
-                  maxLength={9}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-                    setPhone(digits);
-                  }}
-                  aria-invalid={Boolean(errors.phone)}
-                  className="flex-1 bg-transparent px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none"
-                />
+            <div className="mt-8 flex gap-8 border-t border-[#d4d4d4] dark:border-[#444444] pt-8">
+              <div>
+                <span className="block text-2xl font-bold text-[#171717] dark:text-white">+120</span>
+                <span className="text-xs uppercase tracking-wider text-[#666666] dark:text-[#EDEDED]/50">Locales</span>
               </div>
-            </FieldWrapper>
-
-            <FieldWrapper label="Dirección" error={errors.address}>
-              <input
-                type="text"
-                required
-                autoComplete="street-address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                onBlur={(e) => setAddress(normalizeAddress(e.target.value))}
-                placeholder="Ubicacionn"
-                aria-invalid={Boolean(errors.address)}
-                className={inputClass(errors.address)}
-              />
-            </FieldWrapper>
-
-            <FieldWrapper label="Correo electronico" error={errors.email}>
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="correocontacto@mail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={Boolean(errors.email)}
-                className={inputClass(errors.email)}
-              />
-            </FieldWrapper>
-
-            <FieldWrapper label="Contrasena" error={errors.password}>
-              <div className="relative">
-                <input
-                type={showPassword ? "text" : "password"}
-                required
-                minLength={8}
-                autoComplete="new-password"
-                placeholder="********"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-invalid={Boolean(errors.password)}
-                className={inputClass(errors.password)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute inset-y-0 right-4 flex items-center text-white/50 transition hover:text-white focus:outline-none"
-                >
-                  <span className="inline-flex items-center justify-center opacity-100 transition-opacity duration-100">
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </span>
-                </button>
+              <div>
+                <span className="block text-2xl font-bold text-[#171717] dark:text-white">5k</span>
+                <span className="text-xs uppercase tracking-wider text-[#666666] dark:text-[#EDEDED]/50">Visitas/mes</span>
               </div>
-              {passwordCheck.message && (
-                <p className="text-xs text-white/50">{passwordCheck.message}</p>
-              )}
-            </FieldWrapper>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <FieldWrapper label="Confirmar Contrasena" error={errors.confirmPassword}>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  placeholder="********"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  aria-invalid={Boolean(errors.confirmPassword)}
-                  className={inputClass(errors.confirmPassword)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  className="absolute inset-y-0 right-4 flex items-center text-white/50 transition hover:text-white focus:outline-none"
-                >
-                  <span className="inline-flex items-center justify-center opacity-100 transition-opacity duration-200">
-                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                  </span>
-                </button>
-              </div>
-            </FieldWrapper>
-            <FieldWrapper label="Documento de pertenecia" error={errors.file}>
-              <div
-                className={`space-y-3 rounded-3xl border border-dashed px-4 py-5 text-sm transition ${
-                  errors.file ? "border-[#ff3b30]/80 bg-[#1a0d0d]" : "border-white/15 bg-[#111111]"
-                }`}
-              >
-                {file ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-semibold">{file.name}</span>
-                      <span>{progress ?? 0}%</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full bg-[#ef2b2d] transition-all"
-                        style={{ width: `${progress ?? 0}%` }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-white/70">
-                    arrastra o sube los archivos
-                    <div className="text-xs text-white/40">PDF, JPG, PNG maximo 10MB</div>
-                  </div>
-                )}
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-[#ef2b2d] px-4 py-2 font-semibold text-white transition hover:bg-[#ff3b30]">
-                  <TbFileUpload className="h-5 w-5" />
-                  Subir archivo
+      {/* --- COLUMNA DERECHA: FORMULARIO --- */}
+      <div className="w-full lg:w-7/12 flex flex-col justify-center relative overflow-y-auto pt-20">
+        <div className="w-full max-w-2xl mx-auto px-6 py-12 lg:px-16 lg:py-20">
+
+          <div className="mb-10">
+            <h2 className="text-3xl font-bold text-[#171717] dark:text-white mb-2">Crear cuenta comercial</h2>
+            <p className="text-[#666666] dark:text-[#EDEDED]/50">
+              ¿Ya tienes una cuenta? <Link href="/auth/login/ingresar" className="text-[#DA0037] font-medium hover:underline transition-colors">Iniciar sesión</Link>
+            </p>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-8">
+
+            {/* SECCIÓN 1: DATOS PERSONALES */}
+            <div className="space-y-5">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-[#DA0037] flex items-center gap-2 mb-4">
+                <User size={14} /> Representante Legal
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="group">
+                  <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">Nombres</label>
                   <input
-                    type="file"
-                    accept=".pdf,.png,.jpg,.jpeg"
-                    className="hidden"
-                    onChange={(e) => handleUpload(e.target.files?.[0] ?? null)}
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(formatNameInput(e.target.value))}
+                    onBlur={(e) => setFirstName(finalizeName(e.target.value))}
+                    className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md ${errors.firstName ? 'border-red-500' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
+                    placeholder="Ej. Juan Andrés"
                   />
-                </label>
+                  {errors.firstName && <span className="text-xs text-red-500 mt-1">{errors.firstName}</span>}
+                </div>
+                <div className="group">
+                  <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">Apellidos</label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(formatNameInput(e.target.value))}
+                    onBlur={(e) => setLastName(finalizeName(e.target.value))}
+                    className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md ${errors.lastName ? 'border-red-500' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
+                    placeholder="Ej. Pérez Soto"
+                  />
+                  {errors.lastName && <span className="text-xs text-red-500 mt-1">{errors.lastName}</span>}
+                </div>
               </div>
-            </FieldWrapper>
-          </div>
 
-          {status === "ok" && (
-            <p className="text-center text-sm text-[#48d2a0]">Cuenta creada exitosamente!</p>
-          )}
-          {status === "err" && (
-            <p className="text-center text-sm text-[#ff3b30]">Ocurrio un error. Intente nuevamente.</p>
-          )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="group">
+                  <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">RUT Personal</label>
+                  <input
+                    type="text"
+                    value={rut}
+                    onChange={(e) => setRut(formatRutInput(e.target.value))}
+                    maxLength={12}
+                    className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md ${errors.rut ? 'border-red-500' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
+                    placeholder="12.345.678-9"
+                  />
+                  {errors.rut && <span className="text-xs text-red-500 mt-1">{errors.rut}</span>}
+                </div>
+                <div className="group">
+                  <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">Teléfono Móvil</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                    className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md ${errors.phone ? 'border-red-500' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
+                    placeholder="+56 9 1234 5678"
+                  />
+                  {errors.phone && <span className="text-xs text-red-500 mt-1">{errors.phone}</span>}
+                </div>
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-full bg-[#ef2b2d] py-3 text-lg font-semibold text-white transition hover:bg-[#ff3b30] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Registrando..." : "Registrarse"}
-          </button>
+            <div className="h-px bg-[#d4d4d4]/50 dark:bg-[#444444]/30 my-8"></div>
 
-          <div className="text-center text-sm text-white/70">
-            Ya tienes una cuenta?{" "}
-            <Link href="/auth/login/ingresar" className="font-semibold text-[#ff3b30] transition hover:text-white">
-              iniciar sesion
-            </Link>
-          </div>
-        </form>
+            {/* SECCIÓN 2: DATOS DEL COMERCIO */}
+            <div className="space-y-5">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-[#DA0037] flex items-center gap-2 mb-4">
+                <Store size={14} /> Datos del Comercio
+              </h3>
+
+              <div className="group">
+                <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">Nombre de Fantasía</label>
+                <input
+                  type="text"
+                  value={fantasyName}
+                  onChange={(e) => setFantasyName(e.target.value)}
+                  className="w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 border-[#d4d4d4] dark:border-[#444444] px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:border-[#DA0037] focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md"
+                  placeholder="Ej. Panadería Las Ánimas"
+                />
+              </div>
+
+              <div className="group">
+                <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">Dirección Comercial</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 pl-4 pr-10 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md ${errors.address ? 'border-red-500' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
+                    placeholder="Calle, Número, Comuna"
+                  />
+                  <MapPin className="absolute right-3 top-3 text-[#999999] dark:text-[#444444]" size={18} />
+                </div>
+                {errors.address && <span className="text-xs text-red-500 mt-1">{errors.address}</span>}
+              </div>
+            </div>
+
+            {/* SECCIÓN 3: CREDENCIALES */}
+            <div className="space-y-5">
+              <div className="group">
+                <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">Correo Electrónico (Usuario)</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md ${errors.email ? 'border-red-500' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
+                  placeholder="nombre@empresa.cl"
+                />
+                {errors.email && <span className="text-xs text-red-500 mt-1">{errors.email}</span>}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="group relative">
+                  <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">Contraseña</label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md pr-10 ${errors.password ? 'border-red-500' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
+                    placeholder="Mín. 8 caracteres"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-[#999999] dark:text-[#444444] hover:text-[#171717] dark:hover:text-[#EDEDED]">
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                  {errors.password && <span className="text-xs text-red-500 mt-1">{errors.password}</span>}
+                </div>
+                <div className="group relative">
+                  <label className="block text-xs font-medium text-[#666666] dark:text-[#EDEDED]/60 mb-1.5 ml-1 group-focus-within:text-[#DA0037] transition-colors">Repetir Contraseña</label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md ${errors.confirmPassword ? 'border-red-500' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
+                    placeholder="Confirmar"
+                  />
+                  {errors.confirmPassword && <span className="text-xs text-red-500 mt-1">{errors.confirmPassword}</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* VALIDACIÓN */}
+            <div className="bg-[#f5f5f5] dark:bg-[#1f1f1f] rounded-xl p-6 border border-[#d4d4d4] dark:border-[#444444] mt-4">
+              <h4 className="text-sm font-bold text-[#171717] dark:text-white mb-4 flex items-center gap-2">
+                <FileText size={16} className="text-[#DA0037]" /> Documento de Validación
+              </h4>
+
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 cursor-pointer ${dragActive
+                  ? 'border-[#DA0037] bg-[#DA0037]/10'
+                  : errors.file ? 'border-red-500 bg-red-500/10' : 'border-[#d4d4d4] dark:border-[#444444] hover:border-[#171717] dark:hover:border-[#EDEDED] hover:bg-[#e5e5e5] dark:hover:bg-[#252525]'
+                  }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrag}
+              >
+                <UploadCloud className="mx-auto h-10 w-10 text-[#999999] dark:text-[#444444] mb-3" />
+                <p className="text-sm font-medium text-[#171717] dark:text-[#EDEDED]">
+                  {file ? <span className="text-[#DA0037]">{file.name}</span> : <><span className="text-[#DA0037]">Sube tu patente</span> o arrastra el archivo</>}
+                </p>
+                <p className="text-xs text-[#666666] dark:text-[#EDEDED]/40 mt-1">PDF, PNG, JPG (Máx. 10MB)</p>
+                <input
+                  type="file"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={(e) => handleUpload(e.target.files?.[0] ?? null)}
+                />
+              </div>
+              {errors.file && <span className="text-xs text-red-500 mt-1 block text-center">{errors.file}</span>}
+              {progress !== null && (
+                <div className="mt-4 h-1 w-full bg-[#d4d4d4] dark:bg-[#444444] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#DA0037] transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                </div>
+              )}
+            </div>
+
+            {/* FOOTER DEL FORMULARIO */}
+            <div className="pt-4 flex flex-col md:flex-row items-center justify-between gap-6">
+              <label className="flex items-start gap-3 text-sm text-[#666666] dark:text-[#EDEDED]/60 cursor-pointer group">
+                <div className="relative flex items-center">
+                  <input type="checkbox" className="peer appearance-none h-5 w-5 border-2 border-[#d4d4d4] dark:border-[#444444] rounded bg-transparent checked:bg-[#DA0037] checked:border-[#DA0037] transition-all" />
+                  <CheckCircle2 className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 left-0.5 pointer-events-none" />
+                </div>
+                <span className="group-hover:text-[#171717] dark:group-hover:text-[#EDEDED] transition-colors">Acepto los términos y condiciones de uso</span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full md:w-auto px-8 py-4 bg-[#171717] dark:bg-[#EDEDED] text-white dark:text-[#171717] font-black rounded-lg hover:bg-[#000000] dark:hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/5 dark:shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "REGISTRANDO..." : "REGISTRAR"} <ArrowRight size={18} className="text-[#DA0037]" />
+              </button>
+            </div>
+
+            {status === "ok" && (
+              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 text-center">
+                ¡Solicitud enviada con éxito!
+              </div>
+            )}
+            {status === "err" && (
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-center">
+                Ocurrió un error. Intente nuevamente.
+              </div>
+            )}
+
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -574,41 +609,3 @@ function evaluatePassword(password: string): PasswordCheck {
 
   return { score: 4, message: null };
 }
-
-function inputClass(hasError?: string) {
-  return `w-full rounded-2xl border px-4 py-3 text-white placeholder-white/40 transition focus:outline-none focus:ring-2 ${
-    hasError
-      ? "border-[#ff3b30]/80 bg-[#1a0d0d] focus:border-[#ff3b30] focus:ring-[#ff3b30]/30"
-      : "border-white/15 bg-transparent focus:border-white/40 focus:ring-white/15"
-  }`;
-}
-
-function FieldWrapper({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-semibold text-white/80">{label}</label>
-      {children}
-      {error && (
-        <div className="flex items-center gap-2 rounded-2xl border border-[#ff3b30]/40 bg-[#1a0d0d] px-3 py-2 text-sm text-[#ff6b5c]">
-          <span className="text-lg leading-none text-[#ff3b30]">!</span>
-          <span>{error}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-
-
-
-
-

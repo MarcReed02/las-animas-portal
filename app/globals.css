@@ -17,7 +17,16 @@
 body {
   background-color: var(--page-bg);
   color: var(--page-text);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out, border-color 0.5s ease-in-out;
+}
+
+/* Global transition for common theme-affected properties */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 500ms;
 }
 
 html {
