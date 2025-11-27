@@ -33,6 +33,10 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     }
   };
 
+  if (pathname === "/protected") {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-[#050505] text-white flex">
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-white/10 bg-[#0c0c0c]">
@@ -47,9 +51,8 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center gap-3 rounded-full px-3 py-2 border transition-colors ${
-                  active ? "bg-white/10 border-transparent" : "border-transparent hover:bg-white/5"
-                }`}
+                className={`group flex items-center gap-3 rounded-full px-3 py-2 border transition-colors ${active ? "bg-white/10 border-transparent" : "border-transparent hover:bg-white/5"
+                  }`}
               >
                 <Icon className="h-4 w-4 text-white/70 group-hover:text-white" />
                 <span className="text-sm">{item.label}</span>
@@ -91,9 +94,8 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex flex-1 items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${
-                    active ? "bg-white/10 border-transparent" : "border-white/10"
-                  }`}
+                  className={`flex flex-1 items-center gap-2 rounded-full border px-3 py-2 text-sm transition ${active ? "bg-white/10 border-transparent" : "border-white/10"
+                    }`}
                 >
                   <Icon className="h-4 w-4 text-white/70" />
                   <span>{item.label}</span>
