@@ -324,7 +324,7 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
               >
 
                 {/* Imagen Cover */}
-                <div className={`relative h-72 overflow-hidden bg-[#eee] dark:bg-[#111]`}>
+                <Link href={`/comercios/${biz.id}`} className={`relative h-72 overflow-hidden bg-[#eee] dark:bg-[#111] block`}>
                   {biz.image ? (
                     <img
                       src={biz.image}
@@ -334,7 +334,7 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
                   ) : (
                     <div className={`w-full h-full flex items-center justify-center ${textSecondary} opacity-30`}>Sin imagen</div>
                   )}
-                </div>
+                </Link>
 
                 {/* Contenido Principal */}
                 <div className="p-7 flex-1 flex flex-col relative z-10">
@@ -342,10 +342,12 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
                     <span className="text-[#DA0037] text-[10px] font-bold uppercase tracking-wider mb-2 block opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 delay-75">
                       {biz.category} • {biz.subcategory}
                     </span>
-                    <h3 className={`text-2xl font-bold ${textPrimary} group-hover:text-[#DA0037] transition-colors mb-3 leading-tight break-words`}>
-                      {biz.name}
-                    </h3>
-                    <p className={`${textSecondary} text-sm font-light leading-relaxed line-clamp-3 group-hover:${textPrimary} transition-colors break-words`}>
+                    <Link href={`/comercios/${biz.id}`} className="block">
+                      <h3 className={`text-2xl font-bold ${textPrimary} group-hover:text-[#DA0037] transition-colors mb-3 leading-tight break-words`}>
+                        {biz.name}
+                      </h3>
+                    </Link>
+                    <p className={`${textSecondary} text-sm font-light leading-relaxed line-clamp-3 group-hover:text-[#171717] dark:group-hover:text-[#EDEDED] transition-colors break-words`}>
                       {biz.description}
                     </p>
                   </div>
@@ -359,7 +361,7 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
                     {biz.phone && (
                       <div className={`flex items-center gap-3 text-sm ${textSecondary} group/item`}>
                         <Phone size={16} className={`text-[#999] dark:text-[#555] group-hover/item:text-[#DA0037] transition-colors flex-shrink-0`} />
-                        <span className={`font-light hover:${textPrimary} cursor-pointer transition-colors break-words`}>{biz.phone}</span>
+                        <span className={`font-light hover:text-[#171717] dark:hover:text-[#EDEDED] cursor-pointer transition-colors break-words`}>{biz.phone}</span>
                       </div>
                     )}
                     <div className={`flex items-center gap-3 text-sm ${textSecondary} group/item`}>
@@ -398,9 +400,9 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
                       )}
                     </div>
 
-                    <button className={`hover:text-[#DA0037] flex items-center justify-center transition-all group/btn ${textPrimary}`}>
+                    <Link href={`/comercios/${biz.id}`} className={`hover:text-[#DA0037] flex items-center justify-center transition-all group/btn ${textPrimary}`}>
                       <ArrowUpRight size={20} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

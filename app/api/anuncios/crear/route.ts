@@ -16,6 +16,8 @@ type CreateBody = {
   facebook?: string | null;
   whatsapp?: string | null;
   tiktok?: string | null;
+  website?: string | null;
+  twitter?: string | null;
   imagenes?: { url: string; orden?: number }[];
 };
 
@@ -43,6 +45,8 @@ export async function POST(req: NextRequest) {
     facebook,
     whatsapp,
     tiktok,
+    website,
+    twitter,
     imagenes,
   } = body;
 
@@ -67,6 +71,8 @@ export async function POST(req: NextRequest) {
     facebook: facebook || null,
     whatsapp: whatsapp || null,
     tiktok: tiktok || null,
+    contacto_web: website || null,
+    contacto_twitter: twitter || null,
   };
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

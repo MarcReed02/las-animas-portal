@@ -2,16 +2,45 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { FiLayout, FiCheckSquare, FiFileText, FiUsers, FiSettings, FiLogOut } from "react-icons/fi";
-
+import { useMemo, useState, useEffect } from "react";
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  Settings,
+  LogOut,
+  ShieldCheck
+} from 'lucide-react';
+import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase/client";
 
+// --- Theme Configuration (Matched to User's Request) ---
+const themeConfig = {
+  dark: {
+    bg: '#171717',
+    surface: '#171717',
+    surfaceHighlight: '#262626',
+    border: '#444444',
+    text: '#EDEDED',
+    textSecondary: 'rgba(237, 237, 237, 0.6)',
+    hover: 'rgba(68, 68, 68, 0.4)',
+  },
+  light: {
+    bg: '#F3F4F6',
+    surface: '#FFFFFF',
+    surfaceHighlight: '#F9FAFB',
+    border: '#E5E7EB',
+    text: '#111827',
+    textSecondary: '#6B7280',
+    hover: '#F3F4F6',
+  }
+};
+
 const nav = [
-  { href: "/admin", label: "Solicitudes", icon: FiCheckSquare },
-  { href: "/admin/noticias", label: "Noticias", icon: FiFileText },
-  { href: "/admin/usuarios", label: "Usuarios", icon: FiUsers },
-  { href: "/admin/ajustes", label: "Ajustes", icon: FiSettings },
+  { href: "/admin", label: "Solicitudes", icon: LayoutDashboard },
+  { href: "/admin/noticias", label: "Noticias", icon: FileText },
+  { href: "/admin/usuarios", label: "Usuarios", icon: Users },
+  { href: "/admin/ajustes", label: "Ajustes", icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -20,34 +49,56 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const supabase = useMemo(() => createClient(), []);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
+  // Theme Integration
+  const { theme: nextTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Determine current theme colors
+  const currentThemeKey = (mounted && (nextTheme === 'dark' || resolvedTheme === 'dark')) ? 'dark' : 'light';
+  const currentTheme = themeConfig[currentThemeKey];
+
   const handleSignOut = async () => {
     if (isSigningOut) return;
-
     try {
       setIsSigningOut(true);
       const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Error signing out:", error.message);
-        return;
-      }
+      if (error) throw error;
       router.push("/");
       router.refresh();
     } catch (error) {
-      console.error("Unexpected error signing out:", error);
+      console.error("Error signing out:", error);
     } finally {
       setIsSigningOut(false);
     }
   };
 
+  if (!mounted) return null;
+
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex">
+    <div className="min-h-screen flex font-sans transition-colors duration-300"
+      style={{ backgroundColor: currentTheme.bg, color: currentTheme.text }}>
+
       {/* Sidebar */}
-      <aside className="w-64 shrink-0 hidden md:flex flex-col bg-[#111213] border-r border-white/10">
-        <div className="h-16 flex items-center px-5 text-lg font-bold gap-2">
-          <FiLayout className="h-5 w-5 text-white/70" />
-          Dashboard
+      <aside className="w-64 shrink-0 hidden md:flex flex-col border-r transition-colors duration-300 z-20"
+        style={{ backgroundColor: currentTheme.surface, borderColor: currentTheme.border }}>
+
+        {/* Logo Area */}
+        <div className="h-20 flex items-center px-6 border-b transition-colors duration-300"
+          style={{ borderColor: currentTheme.border }}>
+          <div className="w-8 h-8 rounded bg-[#DA0037] flex items-center justify-center mr-3 shadow-lg shadow-[#DA0037]/20">
+            <ShieldCheck size={20} className="text-white" />
+          </div>
+          <span className="font-bold text-lg tracking-wide transition-colors duration-300" style={{ color: currentTheme.text }}>
+            ADMIN
+          </span>
         </div>
-        <nav className="flex-1 px-3 py-3 space-y-1">
+
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-6 space-y-2">
           {nav.map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
@@ -55,33 +106,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center gap-3 px-3 py-2 rounded-full transition-colors border ${
-                  active
-                    ? "bg-white/10 border-transparent"
-                    : "border-transparent hover:bg-white/5"
-                }`}
+                className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${active
+                  ? 'bg-[#DA0037] text-white shadow-lg shadow-[#DA0037]/20'
+                  : 'hover:bg-opacity-10'
+                  }`}
+                style={{
+                  color: active ? 'white' : currentTheme.textSecondary,
+                  backgroundColor: active ? '#DA0037' : 'transparent',
+                }}
+                // Inline hover effect simulation for non-active items
+                onMouseEnter={(e) => !active && (e.currentTarget.style.backgroundColor = currentTheme.hover)}
+                onMouseLeave={(e) => !active && (e.currentTarget.style.backgroundColor = 'transparent')}
               >
-                <Icon className="h-4 w-4 text-white/70 group-hover:text-white" />
-                <span className="text-sm">{item.label}</span>
+                <Icon className={`mr-3 h-5 w-5 ${active ? 'text-white' : ''}`}
+                  style={{ color: active ? 'white' : currentTheme.textSecondary }} />
+                {item.label}
               </Link>
             );
           })}
         </nav>
-        <div className="px-3 pb-4">
+
+        {/* User / Logout */}
+        <div className="h-[69px] px-4 border-t flex items-center transition-colors duration-300" style={{ borderColor: currentTheme.border }}>
           <button
             type="button"
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="group flex w-full items-center gap-3 px-3 py-2 rounded-full border border-transparent transition-colors hover:bg-white/5 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center w-full px-4 py-2 text-sm font-medium rounded-lg hover:text-[#DA0037] transition-colors disabled:opacity-60"
+            style={{ color: currentTheme.textSecondary }}
           >
-            <FiLogOut className="h-4 w-4 text-white/70 group-hover:text-white" />
-            <span className="text-sm">{isSigningOut ? "Saliendo..." : "Salir"}</span>
+            <LogOut size={18} className="mr-3" />
+            {isSigningOut ? "Saliendo..." : "Cerrar Sesión"}
           </button>
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 min-w-0 p-4 md:p-8">
+      {/* Main Content Area */}
+      <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden relative transition-colors duration-300"
+        style={{ backgroundColor: currentTheme.bg }}>
         {children}
       </main>
     </div>

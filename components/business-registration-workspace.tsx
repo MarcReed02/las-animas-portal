@@ -28,6 +28,8 @@ import {
 import NavbarLogged from './navbar-logged';
 import { User } from '@supabase/supabase-js';
 import Footer from './footer';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 // Icono personalizado de TikTok
 const TikTokIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
@@ -145,7 +147,7 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
   const [hasBreak, setHasBreak] = useState(false); // Opción para horario partido
 
   // Estado Fotos
-  const [photos, setPhotos] = useState<{ id: string; url: string; name: string }[]>([]);
+  const [photos, setPhotos] = useState<{ id: string; url: string; name: string; file: File }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estado Contacto
@@ -163,8 +165,10 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
   // Estado de Validación
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { resolvedTheme } = useTheme();
+  const router = useRouter();
 
 
   useEffect(() => {
@@ -202,7 +206,8 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
       const newPhotos = Array.from(files).map(file => ({
         id: Math.random().toString(36).substr(2, 9),
         url: URL.createObjectURL(file),
-        name: file.name
+        name: file.name,
+        file: file
       }));
       setPhotos(prev => [...prev, ...newPhotos]);
     }
@@ -309,10 +314,84 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
 
     setter(formattedValue);
 
-    // Validar si ya fue tocado
     if (touched[name]) {
       const error = validateField(name, formattedValue);
       setErrors(prev => ({ ...prev, [name]: error }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      const supabase = createClient();
+
+      // 1. Upload photos
+      const uploadedImages = [];
+      for (const photo of photos) {
+        const fileExt = photo.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+
+        const formData = new FormData();
+        formData.append('file', photo.file);
+        formData.append('path', filePath);
+
+        const uploadResponse = await fetch('/api/anuncios/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          console.error('Error uploading photo');
+          continue;
+        }
+
+        const { url } = await uploadResponse.json();
+        uploadedImages.push({ url });
+      }
+
+      // 2. Prepare payload
+      const payload = {
+        titulo: businessName,
+        direccion: address,
+        categoria_principal: category,
+        subcategoria: subcategory,
+        descripcion: description,
+        horario: JSON.stringify({ days: selectedDays, time: scheduleTime }),
+        telefono: phone,
+        whatsapp: whatsapp,
+        website: website,
+        instagram: instagram,
+        facebook: facebook,
+        tiktok: tiktok,
+        twitter: twitter,
+        imagenes: uploadedImages,
+        mostrar_telefono: true // Default to true for now
+      };
+
+      // 3. Send to API
+      const response = await fetch('/api/anuncios/crear', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear la solicitud');
+      }
+
+      // 4. Success
+      router.push('/dashboard'); // Redirect to dashboard or success page
+      router.refresh();
+
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('Hubo un error al enviar la solicitud. Por favor intenta nuevamente.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -665,15 +744,16 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
               </div>
 
               <button
-                disabled={Object.keys(errors).some(k => errors[k]) || !businessName || !address || !description || !category || !subcategory || selectedDays.length === 0}
+                onClick={handleSubmit}
+                disabled={isSubmitting || Object.keys(errors).some(k => errors[k]) || !businessName || !address || !description || !category || !subcategory || selectedDays.length === 0}
                 className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 group
-                  ${Object.keys(errors).some(k => errors[k]) || !businessName || !address || !description || !category || !subcategory || selectedDays.length === 0
+                  ${isSubmitting || Object.keys(errors).some(k => errors[k]) || !businessName || !address || !description || !category || !subcategory || selectedDays.length === 0
                     ? `${bgTertiary} ${textTertiary} cursor-not-allowed opacity-50`
                     : 'bg-[#DA0037] hover:bg-[#b3002d] text-white shadow-lg shadow-[#DA0037]/30 hover:shadow-[#DA0037]/50 hover:-translate-y-1'
                   }`}
               >
-                Continuar
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                {isSubmitting ? 'Enviando...' : 'Continuar'}
+                {!isSubmitting && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />}
               </button>
             </div>
 

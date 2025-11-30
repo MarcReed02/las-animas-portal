@@ -61,6 +61,7 @@ export default async function ComerciosPage() {
 
   return (
     <div className="min-h-screen bg-[#171717]">
+      <NavbarNew />
       <ComerciosClient listings={listings} categoryGroups={categoryGroups} />
     </div>
   );

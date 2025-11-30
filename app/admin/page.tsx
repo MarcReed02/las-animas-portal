@@ -1,11 +1,57 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { FiCalendar, FiDownload, FiList, FiRefreshCw, FiSearch } from 'react-icons/fi';
-
+import {
+  Search,
+  CheckCircle,
+  Lock,
+  Store,
+  UserCheck,
+  AlertTriangle,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Tag,
+  RefreshCw,
+  Sun,
+  Moon,
+  Bell,
+  User
+} from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { formatRut } from '@/lib/rut';
 import { createClient } from '@/lib/supabase/client';
+import MinimalFooter from '@/components/minimal-footer';
 
+// --- THEME CONFIGURATION ---
+const themeConfig = {
+  dark: {
+    bg: '#171717',
+    surface: '#171717',
+    surfaceHighlight: '#262626',
+    border: '#444444',
+    text: '#EDEDED',
+    textSecondary: 'rgba(237, 237, 237, 0.6)',
+    inputBg: '#171717',
+    hover: 'rgba(68, 68, 68, 0.4)',
+    toggleBg: 'rgba(0, 0, 0, 0.2)',
+    toggleBorder: '#333333'
+  },
+  light: {
+    bg: '#F3F4F6',
+    surface: '#FFFFFF',
+    surfaceHighlight: '#F9FAFB',
+    border: '#E5E7EB',
+    text: '#111827',
+    textSecondary: '#6B7280',
+    inputBg: '#FFFFFF',
+    hover: '#F3F4F6',
+    toggleBg: '#E5E7EB',
+    toggleBorder: '#D1D5DB'
+  }
+};
+
+// --- TYPES ---
 type Solicitud = {
   id: string;
   nombres: string | null;
@@ -19,13 +65,6 @@ type Solicitud = {
   admin_responsable: string | null;
   fecha_solicitud: string | null;
   created_at: string | null;
-};
-
-const formatFullName = (nombres?: string | null, apellidos?: string | null) => {
-  const first = (nombres ?? '').trim();
-  const last = (apellidos ?? '').trim();
-  const combined = [first, last].filter(Boolean).join(' ').trim();
-  return combined || first || last || 'Sin nombre';
 };
 
 type SolicitudAnuncio = {
@@ -45,68 +84,138 @@ type SolicitudAnuncio = {
   updated_at: string | null;
 };
 
-const ESTADOS: Array<{ key: Solicitud['estado'] | 'todas'; label: string }> = [
-  { key: 'pendiente', label: 'Pendientes' },
-  { key: 'aprobado', label: 'Aprobadas' },
-  { key: 'rechazado', label: 'Rechazadas' },
-  { key: 'todas', label: 'Todas' },
-];
+// --- HELPER FUNCTIONS ---
+const formatFullName = (nombres?: string | null, apellidos?: string | null) => {
+  const first = (nombres ?? '').trim();
+  const last = (apellidos ?? '').trim();
+  const combined = [first, last].filter(Boolean).join(' ').trim();
+  return combined || first || last || 'Sin nombre';
+};
 
-export default function AdminSolicitudesPage() {
+function fmtDate(iso?: string | null) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const date = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
+  const time = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  return `${date} - ${time}`;
+}
+
+function fmtRut(value?: string | null) {
+  if (!value) return '—';
+  return formatRut(value);
+}
+
+function formatSchedule(jsonString?: string | null) {
+  if (!jsonString) return '—';
+  try {
+    const data = JSON.parse(jsonString);
+    const { days, time } = data;
+    if (!days || !time || !Array.isArray(days)) return '—';
+
+    const daysMap = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const sortedDays = days.sort((a: number, b: number) => a - b);
+
+    // Check for "Lunes a Viernes" (1,2,3,4,5)
+    const isMonFri = sortedDays.length === 5 && sortedDays.every((d, i) => d === i + 1);
+    // Check for "Todos los días" (0,1,2,3,4,5,6)
+    const isAllDays = sortedDays.length === 7;
+
+    let dayStr = '';
+    if (isAllDays) dayStr = 'Todos los días';
+    else if (isMonFri) dayStr = 'Lun a Vie';
+    else dayStr = sortedDays.map((d: number) => daysMap[d]).join(', ');
+
+    return `${dayStr} • ${time.start} - ${time.end}`;
+  } catch (e) {
+    return '—';
+  }
+}
+
+// Badge de estado
+const StatusBadge = ({ status }: { status: string }) => {
+  const styles: Record<string, string> = {
+    aprobado: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    rechazado: 'bg-[#DA0037]/10 text-[#DA0037] border-[#DA0037]/20',
+    pendiente: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+  };
+
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${styles[status] || styles.pendiente}`}>
+      {status}
+    </span>
+  );
+};
+
+// --- MAIN COMPONENT ---
+export default function AdminDashboard() {
   const supabase = createClient();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Data State
   const [items, setItems] = useState<Solicitud[]>([]);
   const [anuncioItems, setAnuncioItems] = useState<SolicitudAnuncio[]>([]);
   const [loading, setLoading] = useState(false);
   const [anuncioLoading, setAnuncioLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [anuncioError, setAnuncioError] = useState<string | null>(null);
-  const [q, setQ] = useState('');
-  const [qAnuncio, setQAnuncio] = useState('');
-  const [estado, setEstado] = useState<Solicitud['estado'] | 'todas'>('pendiente');
-  const [estadoAnuncio, setEstadoAnuncio] = useState<SolicitudAnuncio['estado'] | 'todas'>('pendiente');
   const [docLoadingId, setDocLoadingId] = useState<string | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
-  const [menuAnchor, setMenuAnchor] = useState<{ id: string; top: number; left: number } | null>(null);
-  const [menuAnuncioAnchor, setMenuAnuncioAnchor] = useState<{ id: string; top: number; left: number } | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [actionAnuncioLoadingId, setActionAnuncioLoadingId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<{ solicitud: Solicitud; estado: Solicitud['estado'] } | null>(null);
-  const [pendingAnuncioAction, setPendingAnuncioAction] = useState<{ solicitud: SolicitudAnuncio; estado: 'aprobado' | 'rechazado' } | null>(null);
+
+  // UI State
+  const [activeTab, setActiveTab] = useState('pendiente');
+  const [requestType, setRequestType] = useState<'users' | 'commerce'>('commerce');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    type: 'approve' | 'reject' | null;
+    entity: 'user' | 'commerce' | null;
+    data: Solicitud | SolicitudAnuncio | null;
+  }>({
+    isOpen: false,
+    type: null,
+    entity: null,
+    data: null
+  });
+
   const DEFAULT_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_DOCUMENTS_BUCKET || 'documentos';
 
+  // --- EFFECTS ---
   useEffect(() => {
+    setMounted(true);
     fetchData();
     fetchAnuncios();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, requestType, searchTerm]);
+
+  // Determine current theme colors
+  const currentThemeKey = (mounted && (theme === 'dark' || resolvedTheme === 'dark')) ? 'dark' : 'light';
+  const currentTheme = themeConfig[currentThemeKey];
+
+  // --- DATA FETCHING ---
   async function fetchData() {
-    console.log('[admin] 1. Iniciando fetchData...');
     setLoading(true);
     setError(null);
     try {
-      console.log('[admin] 2. Ejecutando query Supabase...');
       const { data, error } = await supabase
         .from('solicitudes_registro')
         .select('id,nombres,apellidos,rut,correo,telefono,direccion,documento_url,estado,admin_responsable,fecha_solicitud,created_at')
         .order('fecha_solicitud', { ascending: false });
 
-      console.log('[admin] 3. Query completada');
-      console.log('[admin] 4. Error object:', error);
-      console.log('[admin] 5. Error message:', error?.message);
-      console.log('[admin] 6. Error code:', (error as any)?.code);
-      console.log('[admin] 7. Data length:', data?.length);
-
-      if (error) {
-        console.error('[admin] 8. Error completo:', JSON.stringify(error, null, 2));
-        console.error('[admin] detalles query', (error as any)?.details);
-        throw error;
-      }
-
-      console.log('[admin] 9. Solicitudes cargadas exitosamente:', data);
+      if (error) throw error;
       setItems((data as Solicitud[]) || []);
     } catch (e: any) {
-      console.error('[admin] 10. Catch error:', e);
-      console.error('[admin] 11. Stack trace:', e?.stack);
+      console.error('[admin] Error fetching requests:', e);
       setError(e.message);
     } finally {
       setLoading(false);
@@ -120,6 +229,7 @@ export default function AdminSolicitudesPage() {
       const response = await fetch('/api/anuncios/list');
       const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.error || 'No se pudieron cargar las solicitudes de anuncios.');
+
       const normalizeEstado = (value: string | null) => {
         const v = (value || '').toLowerCase();
         if (v === 'pending' || v === 'pendiente') return 'pendiente';
@@ -127,9 +237,10 @@ export default function AdminSolicitudesPage() {
         if (v === 'rejected' || v === 'rechazado') return 'rechazado';
         return 'pendiente';
       };
+
       const normalized = ((payload?.data as SolicitudAnuncio[]) || []).map((item) => ({
         ...item,
-        estado: normalizeEstado(item.estado as any),
+        estado: normalizeEstado(item.estado as any) as 'pendiente' | 'aprobado' | 'rechazado' | null,
       }));
       setAnuncioItems(normalized);
     } catch (e: any) {
@@ -139,56 +250,12 @@ export default function AdminSolicitudesPage() {
     }
   }
 
-  const filtered = useMemo(() => {
-    const byEstado = estado === 'todas' ? items : items.filter((i) => i.estado === estado);
-    const term = q.trim().toLowerCase();
-    if (!term) return byEstado;
-    return byEstado.filter((i) => {
-      const fullName = formatFullName(i.nombres, i.apellidos).toLowerCase();
-      return (
-        fullName.includes(term) ||
-        i.rut?.toLowerCase().includes(term) ||
-        i.correo?.toLowerCase().includes(term)
-      );
-    });
-  }, [items, estado, q]);
-
-  const filteredAnuncios = useMemo(() => {
-    const byEstado = estadoAnuncio === 'todas' ? anuncioItems : anuncioItems.filter((i) => i.estado === estadoAnuncio);
-    const term = qAnuncio.trim().toLowerCase();
-    if (!term) return byEstado;
-    return byEstado.filter((i) => {
-      return (
-        i.titulo?.toLowerCase().includes(term) ||
-        i.categoria_principal?.toLowerCase().includes(term) ||
-        i.subcategoria?.toLowerCase().includes(term) ||
-        i.descripcion?.toLowerCase().includes(term)
-      );
-    });
-  }, [anuncioItems, estadoAnuncio, qAnuncio]);
-
-  function fmtDate(iso?: string | null) {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '—';
-    const date = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(
-      d.getFullYear(),
-    ).slice(-2)}`;
-    const time = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-    return `${date} - ${time}`;
-  }
-
-  function fmtRut(value?: string | null) {
-    if (!value) return '—';
-    return formatRut(value);
-  }
-
+  // --- DOCUMENT HANDLING ---
   function resolveDocumentLocation(url?: string | null) {
     if (!url) return null;
     if (!url.includes('/')) {
       return { bucket: DEFAULT_BUCKET, path: url };
     }
-
     try {
       const parsed = new URL(url);
       const segments = parsed.pathname.split('/').filter(Boolean);
@@ -214,13 +281,9 @@ export default function AdminSolicitudesPage() {
       setDocError(null);
       setDocLoadingId(id);
       const location = resolveDocumentLocation(documentUrl);
-      if (!location?.path) {
-        throw new Error('Ruta de documento inválida.');
-      }
-      const params = new URLSearchParams({
-        bucket: location.bucket,
-        path: location.path,
-      });
+      if (!location?.path) throw new Error('Ruta de documento inválida.');
+
+      const params = new URLSearchParams({ bucket: location.bucket, path: location.path });
       const res = await fetch(`/api/documents/sign?${params.toString()}`);
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
@@ -237,62 +300,25 @@ export default function AdminSolicitudesPage() {
     }
   }
 
-  function closeMenu() {
-    setMenuAnchor(null);
-  }
-
-  function toggleMenu(event: React.MouseEvent<HTMLButtonElement>, id: string) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const top = rect.bottom + window.scrollY + 8;
-    const left = rect.right + window.scrollX - 220;
-    setMenuAnchor((current) => (current?.id === id ? null : { id, top, left }));
-  }
-
-  function closeAnuncioMenu() {
-    setMenuAnuncioAnchor(null);
-  }
-
-  function toggleAnuncioMenu(event: React.MouseEvent<HTMLButtonElement>, id: string) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const top = rect.bottom + window.scrollY + 8;
-    const left = rect.right + window.scrollX - 220;
-    setMenuAnuncioAnchor((current) => (current?.id === id ? null : { id, top, left }));
-  }
-
+  // --- ACTIONS ---
   async function updateSolicitudEstado(s: Solicitud, nuevoEstado: Solicitud['estado']) {
     try {
       if (s.estado !== 'pendiente') {
-        setDocError('La solicitud ya fue gestionada. No es posible cambiar su estado.');
+        setDocError('La solicitud ya fue gestionada.');
         return;
       }
       setActionLoadingId(s.id);
       setDocError(null);
       if (nuevoEstado === 'aprobado') {
-        console.log('[admin] llamando a /api/auth/create-user', { solicitudId: s.id });
-        const emailIntentado = s.correo || null;
         const response = await fetch('/api/auth/create-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ solicitudId: s.id }),
         });
-        let payload: any = null;
-        try {
-          payload = await response.json();
-        } catch {
-          payload = null;
-        }
         if (!response.ok) {
-          console.error('[admin] ERROR COMPLETO AL CREAR USUARIO:', {
-            status: response.status,
-            statusText: response.statusText,
-            payload_completo: payload,
-            url: response.url,
-            email_intentado: emailIntentado,
-            timestamp: new Date().toISOString(),
-          });
+          const payload = await response.json().catch(() => null);
           throw new Error(payload?.error || 'No se pudo crear el usuario en Auth.');
         }
-        console.log('[admin] usuario creado correctamente', payload);
       }
       const { data: userData } = await supabase.auth.getUser();
       const adminId = userData?.user?.id ?? null;
@@ -307,7 +333,6 @@ export default function AdminSolicitudesPage() {
       setDocError(e?.message || 'No se pudo actualizar la solicitud.');
     } finally {
       setActionLoadingId(null);
-      closeMenu();
     }
   }
 
@@ -330,465 +355,500 @@ export default function AdminSolicitudesPage() {
       setAnuncioError(e?.message || 'No se pudo actualizar la solicitud de anuncio.');
     } finally {
       setActionAnuncioLoadingId(null);
-      closeAnuncioMenu();
     }
   }
 
+  // --- MODAL HANDLERS ---
+  const requestConfirmation = (type: 'approve' | 'reject', entity: 'user' | 'commerce', data: Solicitud | SolicitudAnuncio) => {
+    setModalConfig({ isOpen: true, type, entity, data });
+  };
+
+  const closeModal = () => {
+    setModalConfig({ ...modalConfig, isOpen: false });
+  };
+
+  const executeAction = async () => {
+    const { type, entity, data } = modalConfig;
+    if (!data || !type || !entity) return;
+
+    if (entity === 'user') {
+      await updateSolicitudEstado(data as Solicitud, type === 'approve' ? 'aprobado' : 'rechazado');
+    } else {
+      await updateAnuncioEstado(data as SolicitudAnuncio, type === 'approve' ? 'aprobado' : 'rechazado');
+    }
+    closeModal();
+  };
+
+  // --- FILTERING & PAGINATION ---
+  const filteredList = useMemo(() => {
+    const list = requestType === 'users' ? items : anuncioItems;
+    return list.filter((item: any) => {
+      const matchesStatus = activeTab === 'todas' || item.estado === activeTab;
+      const term = searchTerm.toLowerCase();
+
+      if (requestType === 'users') {
+        const s = item as Solicitud;
+        const fullName = formatFullName(s.nombres, s.apellidos).toLowerCase();
+        return matchesStatus && (
+          fullName.includes(term) ||
+          s.rut.toLowerCase().includes(term) ||
+          s.correo.toLowerCase().includes(term)
+        );
+      } else {
+        const s = item as SolicitudAnuncio;
+        return matchesStatus && (
+          s.titulo.toLowerCase().includes(term) ||
+          s.categoria_principal?.toLowerCase().includes(term) ||
+          s.subcategoria?.toLowerCase().includes(term) ||
+          (s.descripcion || '').toLowerCase().includes(term)
+        );
+      }
+    });
+  }, [items, anuncioItems, requestType, activeTab, searchTerm]);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToPrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
+
+  if (!mounted) return null;
+
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl md:text-3xl font-extrabold">Solicitudes de registro</h1>
-        <div className="hidden md:flex items-center gap-2 text-white/80">
+    <div className="flex-1 flex flex-col h-full relative transition-colors duration-300"
+      style={{ backgroundColor: currentTheme.bg, color: currentTheme.text }}>
+
+      {/* --- NAVBAR PROFESIONAL --- */}
+      <header className="flex-shrink-0 h-20 border-b px-8 flex justify-between items-center z-30 shadow-sm transition-colors duration-300"
+        style={{ backgroundColor: currentTheme.surface, borderColor: currentTheme.border }}>
+
+        {/* 1. Branding / Logo */}
+        <div className="flex flex-col justify-center select-none cursor-pointer group">
+          <h1 className="text-2xl font-black tracking-tight leading-none transition-colors duration-300" style={{ color: currentTheme.text }}>
+            PORTAL
+          </h1>
+          <span className="text-[#DA0037] text-[10px] font-bold tracking-[0.3em] leading-none mt-1 group-hover:text-red-500 transition-colors">
+            ANIMAS
+          </span>
+        </div>
+
+        {/* 2. Navegación Central (Desktop) */}
+        <nav className="hidden lg:flex items-center space-x-8">
+          {['Inicio', 'Directorio', 'Agenda', 'Proyectos', 'Nosotros'].map((item) => (
+            <a
+              key={item}
+              href={item === 'Directorio' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+              className="text-sm font-medium transition-all duration-200 hover:scale-105"
+              style={{ color: currentTheme.textSecondary }}
+            >
+              {item}
+            </a>
+          ))}
+        </nav>
+
+        {/* 3. Acciones Derecha */}
+        <div className="flex items-center space-x-5">
           <button
-            onClick={fetchData}
-            className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 hover:bg-white/10"
+            onClick={() => { fetchData(); fetchAnuncios(); }}
+            className="p-2 rounded-full hover:bg-opacity-10 transition-colors"
+            style={{ color: currentTheme.textSecondary }}
+            title="Recargar datos"
           >
-            <FiRefreshCw className="h-4 w-4" />
+            <RefreshCw size={18} />
           </button>
-          <button className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 hover:bg-white/10">
-            <FiList className="h-4 w-4" />
-          </button>
-          <button className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 hover:bg-white/10">
-            <FiDownload className="h-4 w-4" />
-          </button>
+
+          <div className="h-6 w-px transition-colors duration-300" style={{ backgroundColor: currentTheme.border }}></div>
+
+          <div className="flex items-center space-x-4 pl-2">
+            <button
+              onClick={toggleTheme}
+              className="transition-colors p-2 rounded-full hover:bg-opacity-10"
+              style={{ color: currentTheme.textSecondary }}
+            >
+              {resolvedTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            <button className="transition-colors p-2 rounded-full relative hover:bg-opacity-10"
+              style={{ color: currentTheme.textSecondary }}>
+              <Bell size={20} />
+              <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#DA0037] rounded-full border border-white/10"></span>
+            </button>
+
+            <div className="flex items-center justify-center w-10 h-10 rounded-full border transition-all relative"
+              style={{ backgroundColor: currentTheme.surfaceHighlight, borderColor: currentTheme.border, color: currentTheme.text }}>
+              <User size={20} />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2" style={{ borderColor: currentTheme.surface }}></span>
+            </div>
+          </div>
         </div>
       </header>
 
-      <div className="flex flex-wrap gap-3 rounded-full">
-        {ESTADOS.map((t) => {
-          const count = t.key === 'todas' ? items.length : items.filter((i) => i.estado === t.key).length;
-          const active = estado === t.key;
-          return (
+      {/* Contenido Scrollable */}
+      <div className="flex-1 p-8 flex flex-col min-h-0">
+
+        {/* Controles Superiores */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+          {/* Toggle Tipo de Solicitud */}
+          <div className="flex p-1 rounded-full border relative transition-colors duration-300"
+            style={{ backgroundColor: currentTheme.toggleBg, borderColor: currentTheme.toggleBorder }}>
             <button
-              key={t.key}
-              onClick={() => setEstado(t.key)}
-              className={`px-4 py-2 rounded-xl border transition-colors text-sm ${
-                active ? 'bg-white/10 border-white/20' : 'border-white/10 hover:bg-white/5'
-              }`}
-            >
-              <span className={t.key === 'pendiente' ? 'text-red-600 font-semibold' : ''}>{count}</span> {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        <div className="bg-[#111111] border border-white/10 rounded-xl overflow-hidden shadow-lg">
-          <div className="p-3 flex flex-wrap gap-3 items-center border-b border-white/10 bg-black/20">
-            <div className="relative flex-1 min-w-[220px]">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 h-4 w-4" />
-              <input
-                placeholder="Buscar..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="w-full bg-black/30 border border-white/10 pl-9 pr-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 rounded-xl"
-              />
-            </div>
-            <div className="relative w-[220px]">
-              <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 h-4 w-4" />
-              <input
-                type="date"
-                className="w-full rounded-xl bg-black/30 border border-white/10 pl-9 pr-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-black/40 text-white/70">
-                <tr>
-                  <th className="text-left font-normal px-4 py-4 w-[110px]">Fecha</th>
-                  <th className="text-left font-normal px-4 py-4">RUT</th>
-                  <th className="text-left font-normal px-4 py-4">Nombre</th>
-                  <th className="text-left font-normal px-4 py-4">Correo</th>
-                  <th className="text-left font-normal px-4 py-4 w-[140px]">Documento</th>
-                  <th className="text-left font-normal px-4 py-4">Teléfono</th>
-                  <th className="text-left font-normal px-4 py-4">Dirección</th>
-                  <th className="text-left font-normal px-4 py-4">Estado</th>
-                  <th className="text-left font-normal px-4 py-4">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && (
-                  <tr>
-                    <td className="px-4 py-6" colSpan={8}>
-                      Cargando...
-                    </td>
-                  </tr>
-                )}
-                {!loading && filtered.length === 0 && (
-                  <tr>
-                    <td className="px-4 py-6" colSpan={8}>
-                      Sin resultados
-                    </td>
-                  </tr>
-                )}
-                {filtered.map((s) => (
-                  <tr key={s.id} className="border-t border-white/10 hover:bg-white/5">
-                    <td className="px-4 py-2 whitespace-nowrap">{fmtDate(s.fecha_solicitud ?? s.created_at)}</td>
-                    <td className="px-4 py-2">{fmtRut(s.rut)}</td>
-                    <td className="px-4 py-2 font-medium">{formatFullName(s.nombres, s.apellidos)}</td>
-                    <td className="px-4 py-2">{s.correo}</td>
-                    <td className="px-4 py-2">
-                      {s.documento_url ? (
-                        <button
-                          onClick={() => openDocument(s.documento_url, s.id)}
-                          disabled={docLoadingId === s.id}
-                          className="text-blue-300 hover:underline disabled:opacity-50"
-                        >
-                          {docLoadingId === s.id ? 'Abriendo...' : 'Ver'}
-                        </button>
-                      ) : (
-                        <span className="text-white/50">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">{s.telefono ?? '—'}</td>
-                    <td className="px-4 py-2">{s.direccion ?? '—'}</td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={
-                          s.estado === 'pendiente'
-                            ? 'inline-flex items-center gap-2 rounded-full border border-yellow-400/60 bg-yellow-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-yellow-300'
-                            : s.estado === 'aprobado'
-                            ? 'inline-flex items-center gap-2 rounded-full border border-green-400/60 bg-green-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-300'
-                            : 'inline-flex items-center gap-2 rounded-full border border-red-400/60 bg-red-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-300'
-                        }
-                      >
-                        <span
-                          className={
-                            s.estado === 'pendiente'
-                              ? 'h-2 w-2 rounded-full bg-yellow-300'
-                              : s.estado === 'aprobado'
-                              ? 'h-2 w-2 rounded-full bg-green-300'
-                              : 'h-2 w-2 rounded-full bg-red-300'
-                          }
-                        />
-                        {s.estado}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      {s.estado === 'pendiente' ? (
-                        <button
-                          onClick={(e) => toggleMenu(e, s.id)}
-                          className="rounded-full border border-white/15 px-3 py-1 text-sm text-white/80 hover:border-white/40 transition"
-                        >
-                          Acciones
-                        </button>
-                      ) : (
-                        <span className="text-white/40 text-sm">Sin acciones</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 text-white/70 text-sm">
-            <div>
-              Mostrando {filtered.length > 0 ? 1 : 0}–{Math.min(filtered.length, 10)} de {filtered.length}
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10">1</button>
-              <button className="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10">2</button>
-              <button className="h-8 w-8 rounded-md bg-white/5 hover:bg-white/10">3</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      
-      {menuAnchor &&
-        (() => {
-          const current = items.find((item) => item.id === menuAnchor.id);
-          if (!current) return null;
-          const left = Math.max(menuAnchor.left, 16);
-          return (
-            <>
-              <div className="fixed inset-0 z-30" onClick={closeMenu} />
-              <div
-                className="fixed z-40 min-w-[200px] rounded-2xl border border-white/10 bg-[#161616] p-2 text-sm shadow-2xl"
-                style={{ top: menuAnchor.top, left }}
-              >
-                <button
-                  onClick={() => {
-                    setPendingAction({ solicitud: current, estado: 'aprobado' });
-                    closeMenu();
-                  }}
-                  disabled={actionLoadingId === current.id}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-white/90 hover:bg-white/10 disabled:opacity-60"
-                >
-                  <span className="text-green-400">✓</span>
-                  {actionLoadingId === current.id ? 'Aceptando...' : 'Aceptar solicitud'}
-                </button>
-                <button
-                  onClick={() => {
-                    setPendingAction({ solicitud: current, estado: 'rechazado' });
-                    closeMenu();
-                  }}
-                  disabled={actionLoadingId === current.id}
-                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-white/90 hover:bg-white/10 disabled:opacity-60"
-                >
-                  <span className="text-red-400">✗</span>
-                  {actionLoadingId === current.id ? 'Rechazando...' : 'Rechazar solicitud'}
-                </button>
-              </div>
-            </>
-          );
-        })()}
-
-
-      {pendingAction && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-[#161616] p-6 text-white shadow-2xl">
-            <h3 className="text-xl font-semibold mb-2">Confirmar accion</h3>
-            <p className="text-sm text-white/80 mb-4">
-              Estas seguro de {pendingAction.estado === 'aprobado' ? 'aprobar' : 'rechazar'} la solicitud de{' '}
-              <span className="font-semibold">{formatFullName(pendingAction.solicitud.nombres, pendingAction.solicitud.apellidos)}</span>? Esta accion no se puede deshacer.
-            </p>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setPendingAction(null)}
-                className="flex-1 rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white/80 hover:border-white/40"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  const target = pendingAction;
-                  if (!target) return;
-                  updateSolicitudEstado(target.solicitud, target.estado);
-                  setPendingAction(null);
-                }}
-                disabled={actionLoadingId === pendingAction.solicitud.id}
-                className={pendingAction.estado === 'aprobado'
-                  ? 'flex-1 rounded-xl bg-green-500/80 px-4 py-2 text-sm font-semibold text-black hover:bg-green-500 disabled:opacity-60'
-                  : 'flex-1 rounded-xl bg-red-500/80 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60'}
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {menuAnuncioAnchor &&
-        (() => {
-          const current = anuncioItems.find((item) => item.id === menuAnuncioAnchor.id);
-          if (!current) return null;
-          const left = Math.max(menuAnuncioAnchor.left, 16);
-          return (
-            <>
-              <div className="fixed inset-0 z-30" onClick={closeAnuncioMenu} />
-              <div
-                className="fixed z-40 min-w-[200px] rounded-2xl border border-white/10 bg-[#161616] p-2 text-sm shadow-2xl"
-                style={{ top: menuAnuncioAnchor.top, left }}
-              >
-                <button
-                  onClick={() => {
-                    setPendingAnuncioAction({ solicitud: current, estado: 'aprobado' });
-                    closeAnuncioMenu();
-                  }}
-                  disabled={actionAnuncioLoadingId === current.id}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-white/90 hover:bg-white/10 disabled:opacity-60"
-                >
-                  <span className="text-green-400">✔</span>
-                  {actionAnuncioLoadingId === current.id ? 'Aceptando...' : 'Aceptar anuncio'}
-                </button>
-                <button
-                  onClick={() => {
-                    setPendingAnuncioAction({ solicitud: current, estado: 'rechazado' });
-                    closeAnuncioMenu();
-                  }}
-                  disabled={actionAnuncioLoadingId === current.id}
-                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-white/90 hover:bg-white/10 disabled:opacity-60"
-                >
-                  <span className="text-red-400">✖</span>
-                  {actionAnuncioLoadingId === current.id ? 'Rechazando...' : 'Rechazar anuncio'}
-                </button>
-              </div>
-            </>
-          );
-        })()}
-
-      {pendingAnuncioAction && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-[#161616] p-6 text-white shadow-2xl">
-            <h3 className="text-xl font-semibold mb-2">Confirmar accion</h3>
-            <p className="text-sm text-white/80 mb-4">
-              Estas seguro de {pendingAnuncioAction.estado === 'aprobado' ? 'aprobar' : 'rechazar'} el anuncio{' '}
-              <span className="font-semibold">{pendingAnuncioAction.solicitud.titulo}</span>? Esta accion no se puede deshacer.
-            </p>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setPendingAnuncioAction(null)}
-                className="flex-1 rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white/80 hover:border-white/40"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  const target = pendingAnuncioAction;
-                  if (!target) return;
-                  updateAnuncioEstado(target.solicitud, target.estado);
-                  setPendingAnuncioAction(null);
-                }}
-                disabled={actionAnuncioLoadingId === pendingAnuncioAction.solicitud.id}
-                className={pendingAnuncioAction.estado === 'aprobado'
-                  ? 'flex-1 rounded-xl bg-green-500/80 px-4 py-2 text-sm font-semibold text-black hover:bg-green-500 disabled:opacity-60'
-                  : 'flex-1 rounded-xl bg-red-500/80 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60'}
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {docError && (
-        <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">{docError}</div>
-      )}
-      {error && (
-        <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">
-          Error: {error}
-        </div>
-      )}
-
-      {/* Seccion de solicitudes de anuncios */}
-      <div className="mt-10 space-y-4 rounded-xl border border-white/10 bg-[#111111] p-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">Solicitudes de anuncios</h2>
-            <p className="text-sm text-white/60">Revisa y aprueba o rechaza las solicitudes de anuncios.</p>
-          </div>
-          <button
-            onClick={fetchAnuncios}
-            className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-white/10 hover:bg-white/10"
-          >
-            <FiRefreshCw className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex flex-wrap gap-3 rounded-full">
-          {ESTADOS.map((t) => {
-            const count =
-              t.key === 'todas'
-                ? anuncioItems.length
-                : anuncioItems.filter((i) => i.estado === t.key).length;
-            const active = estadoAnuncio === t.key;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setEstadoAnuncio(t.key as any)}
-                className={`px-4 py-2 rounded-xl border transition-colors text-sm ${
-                  active ? 'bg-white/10 border-white/20' : 'border-white/10 hover:bg-white/5'
+              onClick={() => setRequestType('commerce')}
+              className={`relative z-10 flex items-center px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${requestType === 'commerce'
+                ? 'shadow-[0_2px_10px_-2px_rgba(0,0,0,0.1)]'
+                : 'hover:opacity-80'
                 }`}
-              >
-                <span className={t.key === 'pendiente' ? 'text-red-600 font-semibold' : ''}>{count}</span> {t.label}
-              </button>
-            );
-          })}
-        </div>
+              style={{
+                backgroundColor: requestType === 'commerce' ? currentTheme.surface : 'transparent',
+                color: requestType === 'commerce' ? currentTheme.text : currentTheme.textSecondary
+              }}
+            >
+              <Store size={16} className={`mr-2 transition-transform duration-300 ${requestType === 'commerce' ? 'scale-110' : ''}`} />
+              Comercios
+            </button>
+            <button
+              onClick={() => setRequestType('users')}
+              className={`relative z-10 flex items-center px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${requestType === 'users'
+                ? 'shadow-[0_2px_10px_-2px_rgba(0,0,0,0.1)]'
+                : 'hover:opacity-80'
+                }`}
+              style={{
+                backgroundColor: requestType === 'users' ? currentTheme.surface : 'transparent',
+                color: requestType === 'users' ? currentTheme.text : currentTheme.textSecondary
+              }}
+            >
+              <UserCheck size={16} className={`mr-2 transition-transform duration-300 ${requestType === 'users' ? 'scale-110' : ''}`} />
+              Usuarios
+            </button>
+          </div>
 
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[220px]">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 h-4 w-4" />
+          {/* Buscador */}
+          <div className="relative w-full md:w-96 group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={16} style={{ color: currentTheme.textSecondary }} className="group-focus-within:text-[#DA0037] transition-colors" />
+            </div>
             <input
-              placeholder="Buscar por titulo, categoria, descripcion..."
-              value={qAnuncio}
-              onChange={(e) => setQAnuncio(e.target.value)}
-              className="w-full bg-black/30 border border-white/10 pl-9 pr-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 rounded-xl"
+              type="text"
+              placeholder={requestType === 'users' ? "Buscar usuario..." : "Buscar comercio..."}
+              className="w-full border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-[#DA0037] focus:ring-1 focus:ring-[#DA0037] transition-all shadow-sm focus:shadow-[#DA0037]/10"
+              style={{
+                backgroundColor: currentTheme.inputBg,
+                borderColor: currentTheme.border,
+                color: currentTheme.text,
+              }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-black/40 text-white/70">
-              <tr>
-                <th className="text-left font-normal px-4 py-4 w-[110px]">Fecha</th>
-                <th className="text-left font-normal px-4 py-4">Comercio / Usuario</th>
-                <th className="text-left font-normal px-4 py-4">Titulo</th>
-                <th className="text-left font-normal px-4 py-4">Categoria</th>
-                <th className="text-left font-normal px-4 py-4">Subcategoria</th>
-                <th className="text-left font-normal px-4 py-4">Direccion</th>
-                <th className="text-left font-normal px-4 py-4">Telefono</th>
-                <th className="text-left font-normal px-4 py-4">Estado</th>
-                <th className="text-left font-normal px-4 py-4">Ultima actualizacion</th>
-                <th className="text-left font-normal px-4 py-4">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {anuncioLoading && (
-                <tr>
-                  <td className="px-4 py-6" colSpan={7}>
-                    Cargando...
-                  </td>
-                </tr>
-              )}
-              {!anuncioLoading && filteredAnuncios.length === 0 && (
-                <tr>
-                  <td className="px-4 py-6" colSpan={7}>
-                    Sin resultados
-                  </td>
-                </tr>
-              )}
-              {filteredAnuncios.map((s) => (
-                <tr key={s.id} className="border-t border-white/10 hover:bg-white/5">
-                  <td className="px-4 py-2 whitespace-nowrap">{fmtDate(s.created_at)}</td>
-                  <td className="px-4 py-2">{s.usuario_nombre || s.user_id || '—'}</td>
-                  <td className="px-4 py-2 font-medium">{s.titulo}</td>
-                  <td className="px-4 py-2">{s.categoria_principal || '—'}</td>
-                  <td className="px-4 py-2">{s.subcategoria || '—'}</td>
-                  <td className="px-4 py-2">{s.direccion || '—'}</td>
-                  <td className="px-4 py-2">{s.mostrar_telefono ? s.telefono_snapshot || '—' : 'No mostrado'}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={
-                        s.estado === 'pendiente'
-                          ? 'inline-flex items-center gap-2 rounded-full border border-yellow-400/60 bg-yellow-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-yellow-300'
-                          : s.estado === 'aprobado'
-                          ? 'inline-flex items-center gap-2 rounded-full border border-green-400/60 bg-green-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-300'
-                          : 'inline-flex items-center gap-2 rounded-full border border-red-400/60 bg-red-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-300'
-                      }
-                    >
-                      <span
-                        className={
-                          s.estado === 'pendiente'
-                            ? 'h-2 w-2 rounded-full bg-yellow-300'
-                            : s.estado === 'aprobado'
-                            ? 'h-2 w-2 rounded-full bg-green-300'
-                            : 'h-2 w-2 rounded-full bg-red-300'
-                        }
-                      />
-                      {s.estado || 'pendiente'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">{fmtDate(s.updated_at || s.created_at)}</td>
-                  <td className="px-4 py-2">
-                    {(!s.estado || s.estado === 'pendiente') ? (
-                      <button
-                        onClick={(e) => toggleAnuncioMenu(e, s.id)}
-                        className="rounded-full border border-white/15 px-3 py-1 text-sm text-white/80 hover:border-white/40 transition"
-                      >
-                        Acciones
-                      </button>
-                    ) : (
-                      <span className="text-white/40 text-sm">Sin acciones</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {anuncioError && (
-          <div className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">
-            Error: {anuncioError}
+        {/* Global Error Display */}
+        {(error || anuncioError || docError) && (
+          <div className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300 animate-in fade-in slide-in-from-top-2">
+            {error || anuncioError || docError}
           </div>
         )}
+
+        {/* Tabla Contenedor */}
+        <div className="flex-1 rounded-xl border flex flex-col shadow-lg overflow-hidden animate-in fade-in duration-700 transition-colors duration-300"
+          style={{ backgroundColor: currentTheme.surface, borderColor: currentTheme.border }}>
+
+          {/* Tabs de la Tabla */}
+          <div className="flex border-b flex-shrink-0 transition-colors duration-300" style={{ borderColor: currentTheme.border }}>
+            {['pendiente', 'aprobado', 'rechazado', 'todas'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-4 text-sm font-medium capitalize transition-all relative hover:bg-opacity-50`}
+                style={{
+                  color: activeTab === tab ? '#DA0037' : currentTheme.textSecondary,
+                  backgroundColor: activeTab === tab ? (resolvedTheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)') : 'transparent'
+                }}
+              >
+                {tab === 'todas' ? 'Todas' : tab + 's'}
+                {activeTab === tab && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#DA0037] animate-in zoom-in-0 duration-300" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Área de la Tabla */}
+          <div className="flex-1 overflow-auto custom-scrollbar">
+            <table className="w-full text-left text-sm">
+              <thead className="uppercase tracking-wider text-xs sticky top-0 z-10 border-b shadow-sm transition-colors duration-300"
+                style={{ backgroundColor: currentTheme.surface, color: currentTheme.textSecondary, borderColor: currentTheme.border }}>
+                <tr>
+                  {requestType === 'users' ? (
+                    <>
+                      <th className="px-6 py-4 font-semibold">Usuario</th>
+                      <th className="px-6 py-4 font-semibold">Contacto</th>
+                      <th className="px-6 py-4 font-semibold">Fecha</th>
+                      <th className="px-6 py-4 font-semibold">Documento</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-6 py-4 font-semibold">Comercio</th>
+                      <th className="px-6 py-4 font-semibold">Detalles</th>
+                      <th className="px-6 py-4 font-semibold">Ubicación</th>
+                    </>
+                  )}
+                  <th className="px-6 py-4 font-semibold text-right">Estado / Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y transition-colors duration-300" key={`${requestType}-${activeTab}-${currentPage}`}
+                style={{ borderColor: currentTheme.border }}>
+                {loading || anuncioLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-20 text-center" style={{ color: currentTheme.textSecondary }}>
+                      Cargando datos...
+                    </td>
+                  </tr>
+                ) : currentItems.length > 0 ? (
+                  currentItems.map((req: any, index: number) => (
+                    <tr
+                      key={req.id}
+                      className="transition-colors group animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards hover:bg-opacity-50"
+                      style={{ animationDelay: `${index * 75}ms` }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = currentTheme.hover}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      {requestType === 'users' ? (
+                        <>
+                          <td className="px-6 py-5">
+                            <div className="font-medium text-[15px]" style={{ color: currentTheme.text }}>{formatFullName(req.nombres, req.apellidos)}</div>
+                            <div className="text-xs text-[#DA0037]/80 font-mono mt-0.5">{fmtRut(req.rut)}</div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div style={{ color: currentTheme.textSecondary }}>{req.correo}</div>
+                            <div className="text-xs mt-0.5 opacity-70" style={{ color: currentTheme.textSecondary }}>{req.telefono || '—'}</div>
+                          </td>
+                          <td className="px-6 py-5 font-mono text-xs opacity-60" style={{ color: currentTheme.textSecondary }}>
+                            {fmtDate(req.fecha_solicitud || req.created_at)}
+                          </td>
+                          <td className="px-6 py-5">
+                            {req.documento_url ? (
+                              <button
+                                onClick={() => openDocument(req.documento_url, req.id)}
+                                disabled={docLoadingId === req.id}
+                                className="flex items-center text-xs font-medium px-3 py-1.5 rounded border transition-all disabled:opacity-50"
+                                style={{
+                                  backgroundColor: resolvedTheme === 'dark' ? 'rgba(68,68,68,0.3)' : 'white',
+                                  color: currentTheme.textSecondary,
+                                  borderColor: currentTheme.border
+                                }}
+                              >
+                                <Lock size={12} className="mr-2" />
+                                {docLoadingId === req.id ? 'Abriendo...' : 'Patente'}
+                              </button>
+                            ) : (
+                              <span className="text-xs opacity-30" style={{ color: currentTheme.textSecondary }}>—</span>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-6 py-5">
+                            <div className="font-medium text-[15px] mb-1" style={{ color: currentTheme.text }}>{req.titulo}</div>
+                            <div className="flex items-center flex-wrap gap-2 text-[11px]">
+                              <span className="px-2 py-0.5 rounded flex items-center"
+                                style={{ backgroundColor: resolvedTheme === 'dark' ? '#333' : '#E5E7EB', color: currentTheme.textSecondary }}>
+                                <Tag size={10} className="mr-1 opacity-60" />
+                                {req.categoria_principal || 'Sin categoría'}
+                              </span>
+                              {req.subcategoria && (
+                                <>
+                                  <span style={{ color: currentTheme.textSecondary }}>•</span>
+                                  <span className="italic" style={{ color: currentTheme.textSecondary }}>{req.subcategoria}</span>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="font-medium text-sm" style={{ color: currentTheme.text }}>{req.usuario_nombre || 'Usuario desconocido'}</div>
+                            <div className="text-xs mt-0.5 line-clamp-1" style={{ color: currentTheme.textSecondary }}>{req.descripcion || 'Sin descripción'}</div>
+                            <div className="text-[10px] mt-1 font-mono opacity-80" style={{ color: currentTheme.textSecondary }}>
+                              {formatSchedule(req.horario)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-xs" style={{ color: currentTheme.textSecondary }}>
+                            {req.direccion || '—'}
+                          </td>
+                        </>
+                      )}
+
+                      <td className="px-6 py-5 text-right">
+                        {req.estado === 'pendiente' ? (
+                          <div className="flex justify-end gap-3 opacity-90 group-hover:opacity-100 transition-all duration-300">
+                            <button
+                              onClick={() => requestConfirmation('reject', requestType === 'users' ? 'user' : 'commerce', req)}
+                              className="flex items-center px-3 py-1.5 rounded-lg border hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/50 transition-all text-xs font-medium"
+                              style={{ borderColor: currentTheme.border, color: currentTheme.textSecondary }}
+                            >
+                              Rechazar
+                            </button>
+                            <button
+                              onClick={() => requestConfirmation('approve', requestType === 'users' ? 'user' : 'commerce', req)}
+                              className="flex items-center px-3 py-1.5 rounded-lg bg-[#EDEDED] text-[#171717] hover:bg-[#DA0037] hover:text-white hover:shadow-[0_0_15px_-3px_rgba(218,0,55,0.4)] transition-all text-xs font-bold"
+                            >
+                              <CheckCircle size={14} className="mr-2" />
+                              Aprobar
+                            </button>
+                          </div>
+                        ) : (
+                          <StatusBadge status={req.estado} />
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-20 text-center animate-in fade-in duration-500">
+                      <div className="flex flex-col items-center justify-center" style={{ color: currentTheme.textSecondary }}>
+                        <Store size={48} strokeWidth={1} className="mb-4 opacity-30" />
+                        <p className="text-lg font-medium">No hay solicitudes en esta vista</p>
+                        <p className="text-sm opacity-70">Cambia los filtros para ver más resultados</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer de Paginación */}
+          <div className="px-6 py-4 border-t flex items-center justify-between flex-shrink-0 transition-colors duration-300"
+            style={{ backgroundColor: currentTheme.surface, borderColor: currentTheme.border }}>
+            <div className="text-xs" style={{ color: currentTheme.textSecondary }}>
+              Mostrando <span className="font-medium" style={{ color: currentTheme.text }}>{filteredList.length > 0 ? indexOfFirstItem + 1 : 0}</span> - <span className="font-medium" style={{ color: currentTheme.text }}>{Math.min(indexOfLastItem, filteredList.length)}</span> de <span className="font-medium" style={{ color: currentTheme.text }}>{filteredList.length}</span> resultados
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={goToPrevPage}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-lg transition-all ${currentPage === 1
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'hover:bg-[#DA0037] hover:text-white'
+                  }`}
+                style={{ color: currentPage === 1 ? currentTheme.textSecondary : currentTheme.text }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              <span className="text-sm font-medium px-2" style={{ color: currentTheme.textSecondary }}>
+                Página {currentPage} de {totalPages || 1}
+              </span>
+
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className={`p-2 rounded-lg transition-all ${currentPage === totalPages || totalPages === 0
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'hover:bg-[#DA0037] hover:text-white'
+                  }`}
+                style={{ color: currentPage === totalPages ? currentTheme.textSecondary : currentTheme.text }}
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <MinimalFooter />
+
+      {/* --- MODAL OVERLAY --- */}
+      {modalConfig.isOpen && modalConfig.data && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="border rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform scale-100 animate-in zoom-in-95 duration-200"
+            style={{ backgroundColor: currentTheme.surface, borderColor: currentTheme.border }}>
+
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b flex justify-between items-center"
+              style={{ borderColor: currentTheme.border, backgroundColor: resolvedTheme === 'dark' ? '#333333' : '#F9FAFB' }}>
+              <h3 className="text-lg font-bold flex items-center" style={{ color: currentTheme.text }}>
+                <AlertTriangle className={`mr-2 ${modalConfig.type === 'approve' ? 'text-emerald-500' : 'text-[#DA0037]'}`} size={20} />
+                Confirmar Acción
+              </h3>
+              <button onClick={closeModal} className="transition-colors hover:opacity-70" style={{ color: currentTheme.textSecondary }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <p className="mb-4" style={{ color: currentTheme.text }}>
+                ¿Estás seguro que deseas
+                <span className={`font-bold mx-1 ${modalConfig.type === 'approve' ? 'text-emerald-500' : 'text-[#DA0037]'}`}>
+                  {modalConfig.type === 'approve' ? 'APROBAR' : 'RECHAZAR'}
+                </span>
+                la solicitud de:
+              </p>
+
+              <div className="p-4 rounded-lg border mb-4"
+                style={{ backgroundColor: resolvedTheme === 'dark' ? 'rgba(68,68,68,0.2)' : '#F3F4F6', borderColor: currentTheme.border }}>
+                <div className="text-sm uppercase text-xs mb-1" style={{ color: currentTheme.textSecondary }}>
+                  {modalConfig.entity === 'user' ? 'Solicitante' : 'Comercio'}
+                </div>
+                <div className="font-bold text-lg" style={{ color: currentTheme.text }}>
+                  {modalConfig.entity === 'user'
+                    ? formatFullName((modalConfig.data as Solicitud).nombres, (modalConfig.data as Solicitud).apellidos)
+                    : (modalConfig.data as SolicitudAnuncio).titulo
+                  }
+                </div>
+                {modalConfig.entity === 'user' && (
+                  <>
+                    <div className="text-sm font-mono text-[#DA0037] mt-1">{fmtRut((modalConfig.data as Solicitud).rut)}</div>
+                    <div className="text-sm mt-1" style={{ color: currentTheme.textSecondary }}>{(modalConfig.data as Solicitud).correo}</div>
+                  </>
+                )}
+                {modalConfig.entity === 'commerce' && (
+                  <div className="text-sm mt-1" style={{ color: currentTheme.textSecondary }}>{(modalConfig.data as SolicitudAnuncio).categoria_principal}</div>
+                )}
+              </div>
+
+              <p className="text-xs" style={{ color: currentTheme.textSecondary }}>
+                {modalConfig.type === 'approve'
+                  ? 'Esta acción habilitará inmediatamente el acceso o publicación en la plataforma.'
+                  : 'La solicitud será marcada como rechazada.'}
+              </p>
+            </div>
+
+            {/* Modal Footer (Botones) */}
+            <div className="px-6 py-4 border-t flex justify-end space-x-3"
+              style={{ borderColor: currentTheme.border, backgroundColor: resolvedTheme === 'dark' ? '#333333' : '#F9FAFB' }}>
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
+                style={{ color: currentTheme.textSecondary }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={executeAction}
+                disabled={actionLoadingId === modalConfig.data.id || actionAnuncioLoadingId === modalConfig.data.id}
+                className={`px-4 py-2 rounded-lg text-sm font-bold text-white shadow-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${modalConfig.type === 'approve'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/20'
+                  : 'bg-[#DA0037] hover:bg-red-600 shadow-red-900/20'
+                  }`}
+              >
+                {actionLoadingId === modalConfig.data.id || actionAnuncioLoadingId === modalConfig.data.id
+                  ? 'Procesando...'
+                  : (modalConfig.type === 'approve' ? 'Confirmar Aprobación' : 'Confirmar Rechazo')
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

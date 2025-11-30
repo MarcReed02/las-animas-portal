@@ -184,7 +184,7 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
                       {/* Opciones del Menú */}
                       <div className="p-2 space-y-1">
                         {userData.role === 'merchant' && (
-                          <Link href="/protected" className={`flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all ${isDarkMode ? 'text-gray-300 hover:bg-[#DA0037] hover:text-white hover:shadow-lg hover:shadow-red-900/20' : 'text-gray-700 hover:bg-[#DA0037] hover:text-white'}`}>
+                          <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all ${isDarkMode ? 'text-gray-300 hover:bg-[#DA0037] hover:text-white hover:shadow-lg hover:shadow-red-900/20' : 'text-gray-700 hover:bg-[#DA0037] hover:text-white'}`}>
                             <LayoutDashboard size={18} />
                             <span className="font-medium">Panel de Control</span>
                           </Link>
