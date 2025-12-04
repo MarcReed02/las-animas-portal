@@ -24,7 +24,7 @@ export async function GET() {
           if (signed.data?.signedUrl) {
             return { ...row, image_url: signed.data.signedUrl }
           }
-        } catch {}
+        } catch { }
       }
       return row
     }))
@@ -57,11 +57,19 @@ export async function POST(request: NextRequest) {
       ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
       : serverClient
     const body = await request.json()
-    const { title, excerpt, image_url, slug } = body
+    const { title, excerpt, image_url, slug, images, status, published_at } = body
 
     const { data, error } = await supabase
       .from('news')
-      .insert([{ title, excerpt, image_url, slug, published_at: new Date().toISOString() }])
+      .insert([{
+        title,
+        excerpt,
+        image_url,
+        slug,
+        images,
+        status,
+        published_at: published_at || new Date().toISOString()
+      }])
       .select()
 
     if (error) {

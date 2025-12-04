@@ -37,6 +37,12 @@ const TikTokIcon = ({ size = 18, className }: { size?: number, className?: strin
   </svg>
 );
 
+const XIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+  </svg>
+);
+
 type BusinessData = {
   id: string;
   name: string;
@@ -192,11 +198,11 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
     description: initialData.descripcion || "",
     address: initialData.direccion || "",
     phone: initialData.telefono_snapshot || initialData.contacto_telefono || "",
-    whatsapp: initialData.contacto_whatsapp || "",
+    whatsapp: initialData.whatsapp || initialData.contacto_whatsapp || "",
     website: initialData.contacto_web || "",
-    instagram: initialData.contacto_instagram || "",
-    facebook: initialData.contacto_facebook || "",
-    tiktok: initialData.contacto_tiktok || "",
+    instagram: initialData.instagram || initialData.contacto_instagram || "",
+    facebook: initialData.facebook || initialData.contacto_facebook || "",
+    tiktok: initialData.tiktok || initialData.contacto_tiktok || "",
     twitter: initialData.contacto_twitter || "",
     photos: initialData.anuncio_solicitud_imagenes?.map((img: any) => ({
       id: img.id || Math.random().toString(36).substr(2, 9),
@@ -346,6 +352,55 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
       photos: prev.photos.filter(p => p.id !== id)
     }));
   };
+
+  const getChanges = () => {
+    const changes = [];
+    const normalize = (val: any) => val === null || val === undefined ? "" : String(val).trim();
+
+    if (normalize(businessData.name) !== normalize(initialData.titulo)) changes.push({ label: "Nombre Comercial", old: initialData.titulo, new: businessData.name });
+    if (normalize(businessData.category) !== normalize(initialData.categoria_principal)) changes.push({ label: "Categoría", old: initialData.categoria_principal, new: businessData.category });
+    if (normalize(businessData.subcategory) !== normalize(initialData.subcategoria)) changes.push({ label: "Subcategoría", old: initialData.subcategoria, new: businessData.subcategory });
+    if (normalize(businessData.description) !== normalize(initialData.descripcion)) changes.push({ label: "Descripción", old: "...", new: "Texto actualizado" });
+    if (normalize(businessData.address) !== normalize(initialData.direccion)) changes.push({ label: "Dirección", old: initialData.direccion, new: businessData.address });
+
+    const contactFields = [
+      { key: 'phone', dbKey: 'telefono_snapshot', label: 'Teléfono', fallbackDbKey: 'contacto_telefono' },
+      { key: 'whatsapp', dbKey: 'contacto_whatsapp', label: 'WhatsApp' },
+      { key: 'website', dbKey: 'contacto_web', label: 'Sitio Web' },
+      { key: 'instagram', dbKey: 'contacto_instagram', label: 'Instagram' },
+      { key: 'facebook', dbKey: 'contacto_facebook', label: 'Facebook' },
+      { key: 'tiktok', dbKey: 'contacto_tiktok', label: 'TikTok' },
+      { key: 'twitter', dbKey: 'contacto_twitter', label: 'X (Twitter)' },
+    ];
+
+    contactFields.forEach(field => {
+      // @ts-ignore
+      const currentVal = normalize(businessData[field.key]);
+      const initialVal = normalize(initialData[field.dbKey] || (field.fallbackDbKey ? initialData[field.fallbackDbKey] : ""));
+      if (currentVal !== initialVal) changes.push({ label: field.label, old: initialVal || "(vacío)", new: currentVal || "(vacío)" });
+    });
+
+    const currentSchedule = JSON.stringify({ days: selectedDays.sort(), time: scheduleTimes });
+    let initialScheduleNormalized = "";
+    try {
+      const parsed = initialData.horario ? JSON.parse(initialData.horario) : { days: [], time: { start: "", end: "" } };
+      if (parsed.days) parsed.days.sort();
+      initialScheduleNormalized = JSON.stringify(parsed);
+    } catch (e) { initialScheduleNormalized = JSON.stringify({ days: [], time: { start: "", end: "" } }); }
+
+    if (currentSchedule !== initialScheduleNormalized) changes.push({ label: "Horario", old: "Anterior", new: "Actualizado" });
+
+    const initialPhotoIds = new Set(initialData.anuncio_solicitud_imagenes?.map((img: any) => img.id) || []);
+    const currentPhotoIds = new Set(businessData.photos.map(p => p.id));
+    let photosChanged = false;
+    if (initialPhotoIds.size !== currentPhotoIds.size) photosChanged = true;
+    else { for (let id of currentPhotoIds) { if (!initialPhotoIds.has(id)) { photosChanged = true; break; } } }
+    if (photosChanged) changes.push({ label: "Fotos", old: `${initialPhotoIds.size} fotos`, new: `${currentPhotoIds.size} fotos` });
+
+    return changes;
+  };
+
+  const changesList = getChanges();
 
   return (
     <div className="min-h-screen bg-[#121212] font-sans text-[#f4f4f5] flex flex-col overflow-x-hidden selection:bg-[#DA0037] selection:text-white">
@@ -545,7 +600,7 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
                   <DashboardInput label="Instagram" value={businessData.instagram} onChange={(e: any) => setBusinessData({ ...businessData, instagram: e.target.value })} icon={Instagram} delay={750} isEditing={isEditing} mounted={mounted} />
                   <DashboardInput label="Facebook" value={businessData.facebook} onChange={(e: any) => setBusinessData({ ...businessData, facebook: e.target.value })} icon={Facebook} delay={800} isEditing={isEditing} mounted={mounted} />
                   <DashboardInput label="TikTok" value={businessData.tiktok} onChange={(e: any) => setBusinessData({ ...businessData, tiktok: e.target.value })} icon={TikTokIcon} delay={850} isEditing={isEditing} mounted={mounted} />
-                  <DashboardInput label="Twitter / X" value={businessData.twitter} onChange={(e: any) => setBusinessData({ ...businessData, twitter: e.target.value })} icon={Twitter} delay={900} isEditing={isEditing} mounted={mounted} />
+                  <DashboardInput label="X" value={businessData.twitter} onChange={(e: any) => setBusinessData({ ...businessData, twitter: e.target.value })} icon={XIcon} delay={900} isEditing={isEditing} mounted={mounted} />
                 </div>
               </div>
             </div>
@@ -712,26 +767,31 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white">¿Guardar cambios?</h3>
-                <p className="text-xs text-[#a1a1aa]">Esta acción actualizará tu ficha pública.</p>
+                <p className="text-xs text-[#a1a1aa]">Revisa los cambios antes de confirmar.</p>
               </div>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-[#71717a] leading-relaxed">
-                Asegúrate de que la información sea correcta. Los cambios en el nombre o dirección pueden requerir una re-verificación por parte de nuestro equipo.
-              </p>
-
-              <div className="bg-[#27272a] p-4 rounded-xl border border-[#3f3f46] flex flex-col gap-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#a1a1aa]">Horario:</span>
-                  <span className="text-white font-mono">{scheduleTimes.start} - {scheduleTimes.end}</span>
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto custom-scroll">
+              {changesList.length === 0 ? (
+                <p className="text-sm text-[#a1a1aa] text-center italic">No se han detectado cambios.</p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-[#71717a] uppercase tracking-wider font-bold">Resumen de cambios:</p>
+                  <div className="bg-[#27272a] rounded-xl border border-[#3f3f46] overflow-hidden">
+                    {changesList.map((change, idx) => (
+                      <div key={idx} className="p-3 border-b border-[#3f3f46] last:border-0 flex flex-col gap-1">
+                        <span className="text-xs font-bold text-[#DA0037]">{change.label}</span>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[#71717a] line-through truncate max-w-[40%]">{change.old}</span>
+                          <span className="text-[#52525b]">→</span>
+                          <span className="text-white font-medium truncate max-w-[45%]">{change.new}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#a1a1aa]">Fotos nuevas:</span>
-                  <span className="text-white font-mono">{businessData.photos.length}</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Modal Actions */}

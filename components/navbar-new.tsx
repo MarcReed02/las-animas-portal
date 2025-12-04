@@ -71,10 +71,10 @@ export default function NavbarNew() {
           <div className="hidden md:block">
             <div className="flex items-center space-x-6">
               {/* Enlaces con Hover solo de color (Sin línea animada) */}
-              {['Inicio', 'Directorio', 'Agenda', 'Proyectos', 'Nosotros'].map((item) => (
+              {['Inicio', 'Comercios', 'Nosotros'].map((item) => (
                 <Link
                   key={item}
-                  href={item === 'Directorio' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+                  href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
                   className={`text-sm font-medium transition-colors duration-200 hover:text-[#DA0037] ${textSecondary}`}
                 >
                   {item}
@@ -90,7 +90,7 @@ export default function NavbarNew() {
 
               {/* Botón Ingreso Comerciantes: Rojo Sólido */}
               <Link href="/auth/login" className={`text-xs font-bold px-5 py-2.5 rounded-full transition-all bg-[#DA0037] text-white hover:bg-[#b3002d] shadow-lg shadow-[#DA0037]/20 hover:scale-105`}>
-                Ingreso Comerciantes
+                Registro de Comercio
               </Link>
 
               <button
@@ -118,10 +118,10 @@ export default function NavbarNew() {
       {isMenuOpen && (
         <div className={`md:hidden absolute w-full px-4 pt-2 pb-6 border-b shadow-xl ${isDarkMode ? 'bg-[#171717] border-[#444444]' : 'bg-white border-[#EDEDED]'}`}>
           <div className="space-y-3">
-            {['Inicio', 'Directorio', 'Agenda', 'Proyectos', 'Nosotros'].map((item) => (
+            {['Inicio', 'Comercios', 'Nosotros'].map((item) => (
               <Link
                 key={item}
-                href={item === 'Directorio' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+                href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
                 className={`block px-3 py-3 rounded-lg text-base font-medium ${isDarkMode ? 'text-[#EDEDED]/80 hover:bg-[#444444]/30' : 'text-[#444444] hover:bg-[#EDEDED]'}`}
               >
                 {item}
@@ -132,7 +132,7 @@ export default function NavbarNew() {
               <LogIn size={18} /> Iniciar sesión
             </Link>
             <Link href="/auth/login" className={`block w-full text-center px-3 py-3 rounded-lg font-bold bg-[#DA0037] text-white`}>
-              Ingreso Comerciantes
+              Registro de Comercio
             </Link>
           </div>
         </div>

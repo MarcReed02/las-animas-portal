@@ -424,70 +424,7 @@ export default function AdminDashboard() {
     <div className="flex-1 flex flex-col h-full relative transition-colors duration-300"
       style={{ backgroundColor: currentTheme.bg, color: currentTheme.text }}>
 
-      {/* --- NAVBAR PROFESIONAL --- */}
-      <header className="flex-shrink-0 h-20 border-b px-8 flex justify-between items-center z-30 shadow-sm transition-colors duration-300"
-        style={{ backgroundColor: currentTheme.surface, borderColor: currentTheme.border }}>
 
-        {/* 1. Branding / Logo */}
-        <div className="flex flex-col justify-center select-none cursor-pointer group">
-          <h1 className="text-2xl font-black tracking-tight leading-none transition-colors duration-300" style={{ color: currentTheme.text }}>
-            PORTAL
-          </h1>
-          <span className="text-[#DA0037] text-[10px] font-bold tracking-[0.3em] leading-none mt-1 group-hover:text-red-500 transition-colors">
-            ANIMAS
-          </span>
-        </div>
-
-        {/* 2. Navegación Central (Desktop) */}
-        <nav className="hidden lg:flex items-center space-x-8">
-          {['Inicio', 'Directorio', 'Agenda', 'Proyectos', 'Nosotros'].map((item) => (
-            <a
-              key={item}
-              href={item === 'Directorio' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
-              className="text-sm font-medium transition-all duration-200 hover:scale-105"
-              style={{ color: currentTheme.textSecondary }}
-            >
-              {item}
-            </a>
-          ))}
-        </nav>
-
-        {/* 3. Acciones Derecha */}
-        <div className="flex items-center space-x-5">
-          <button
-            onClick={() => { fetchData(); fetchAnuncios(); }}
-            className="p-2 rounded-full hover:bg-opacity-10 transition-colors"
-            style={{ color: currentTheme.textSecondary }}
-            title="Recargar datos"
-          >
-            <RefreshCw size={18} />
-          </button>
-
-          <div className="h-6 w-px transition-colors duration-300" style={{ backgroundColor: currentTheme.border }}></div>
-
-          <div className="flex items-center space-x-4 pl-2">
-            <button
-              onClick={toggleTheme}
-              className="transition-colors p-2 rounded-full hover:bg-opacity-10"
-              style={{ color: currentTheme.textSecondary }}
-            >
-              {resolvedTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-
-            <button className="transition-colors p-2 rounded-full relative hover:bg-opacity-10"
-              style={{ color: currentTheme.textSecondary }}>
-              <Bell size={20} />
-              <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#DA0037] rounded-full border border-white/10"></span>
-            </button>
-
-            <div className="flex items-center justify-center w-10 h-10 rounded-full border transition-all relative"
-              style={{ backgroundColor: currentTheme.surfaceHighlight, borderColor: currentTheme.border, color: currentTheme.text }}>
-              <User size={20} />
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2" style={{ borderColor: currentTheme.surface }}></span>
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* Contenido Scrollable */}
       <div className="flex-1 p-8 flex flex-col min-h-0">

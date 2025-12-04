@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase/client";
+import AdminNavbar from "@/components/admin-navbar";
 
 // --- Theme Configuration (Matched to User's Request) ---
 const themeConfig = {
@@ -48,14 +49,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [isSigningOut, setIsSigningOut] = useState(false);
-
-  // Theme Integration
-  const { theme: nextTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { theme, resolvedTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Theme Integration
+  const { theme: nextTheme } = useTheme();
 
   // Determine current theme colors
   const currentThemeKey = (mounted && (nextTheme === 'dark' || resolvedTheme === 'dark')) ? 'dark' : 'light';
@@ -78,8 +80,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!mounted) return null;
 
+  const isDarkMode = resolvedTheme === 'dark';
+  const bgClass = isDarkMode ? 'bg-[#171717]' : 'bg-[#F3F4F6]';
+  const textClass = isDarkMode ? 'text-[#EDEDED]' : 'text-[#111827]';
+
   return (
-    <div className="min-h-screen flex font-sans transition-colors duration-300"
+    <div className={`min-h-screen flex font-sans transition-colors duration-300 ${bgClass} ${textClass}`}
       style={{ backgroundColor: currentTheme.bg, color: currentTheme.text }}>
 
       {/* Sidebar */}
@@ -142,9 +148,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden relative transition-colors duration-300"
-        style={{ backgroundColor: currentTheme.bg }}>
-        {children}
+      <main className="flex-1 min-w-0 flex flex-col relative">
+        <AdminNavbar
+          showLogo={false}
+          showLinks={true}
+          links={[
+            { label: 'Inicio', href: '/' },
+            { label: 'Comercios', href: '/comercios' },
+            { label: 'Nosotros', href: '#' }
+          ]}
+        />
+        <div className="flex-1 pt-20">
+          {children}
+        </div>
       </main>
     </div>
   );

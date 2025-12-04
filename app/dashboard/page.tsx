@@ -15,6 +15,17 @@ export default async function DashboardPage() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
   const adminClient = createAdminClient(supabaseUrl, serviceKey);
 
+  // Check for admin role first
+  const { data: profile } = await adminClient
+    .from("usuarios")
+    .select("rol")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.rol === "admin") {
+    redirect("/admin");
+  }
+
   // Fetch user's business
   const { data: business, error } = await adminClient
     .from("anuncio_solicitudes")
@@ -36,6 +47,10 @@ export default async function DashboardPage() {
     // If no business found, maybe redirect to registration or show a "Create Business" state
     // For now, let's redirect to the registration page if they don't have one
     redirect("/protected");
+  }
+
+  if (business.estado === 'pendiente') {
+    redirect("/");
   }
 
   // Fetch categories logic

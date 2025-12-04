@@ -31,13 +31,15 @@ import {
   LogOut,
   Settings,
   LayoutDashboard,
-  LogIn
+  LogIn,
+  Pencil
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Session } from '@supabase/supabase-js';
+import ProfileMenu from './profile-menu';
 
 // Icono TikTok
 const TikTokIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
@@ -68,6 +70,23 @@ export default function BusinessDetailView({ businessData }: { businessData: any
   const [session, setSession] = useState<Session | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [businessStatus, setBusinessStatus] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState<string | null>(null);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleNotifications = () => setIsNotificationsOpen(!isNotificationsOpen);
 
   const router = useRouter();
   const supabase = createClient();
@@ -81,18 +100,64 @@ export default function BusinessDetailView({ businessData }: { businessData: any
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+
+      if (session?.user?.id) {
+        const { data } = await supabase
+          .from('usuarios')
+          .select('rol')
+          .eq('id', session.user.id)
+          .single();
+        if (data) {
+          setUserRole(data.rol);
+        }
+
+        // Fetch Business Status via API to bypass RLS issues
+        try {
+          const res = await fetch('/api/user/business-status');
+
+          if (res.status === 401) {
+            // Session is invalid/expired on server. Force refresh/logout.
+            console.warn("Session expired. Refreshing...");
+            await supabase.auth.signOut();
+            window.location.reload();
+            return;
+          }
+
+          if (res.ok) {
+            const businessData = await res.json();
+            if (businessData && businessData.estado) {
+              setBusinessStatus(businessData.estado);
+              setBusinessName(businessData.titulo);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching business status:", error);
+        }
+      }
     };
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user?.id) {
+        supabase
+          .from('usuarios')
+          .select('rol')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data) setUserRole(data.rol);
+          });
+      } else {
+        setUserRole(null);
+      }
     });
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   // Controlar scroll del body cuando la galería está abierta
   useEffect(() => {
@@ -137,8 +202,8 @@ export default function BusinessDetailView({ businessData }: { businessData: any
   const userData = {
     name: getDisplayName(),
     email: session?.user?.email,
-    role: "merchant", // Placeholder
-    notifications: 5
+    role: userRole || "neighbor",
+    notifications: (businessStatus === 'pending' || businessStatus === 'approved') ? 1 : 0
   };
 
   // Transformar datos de la DB al formato de la vista
@@ -189,11 +254,11 @@ export default function BusinessDetailView({ businessData }: { businessData: any
     fullDescription: businessData.descripcion,
     address: businessData.direccion,
     phone: businessData.telefono_snapshot || businessData.contacto_telefono || businessData.telefono || "",
-    whatsapp: businessData.contacto_whatsapp,
+    whatsapp: businessData.whatsapp || businessData.contacto_whatsapp,
     website: businessData.contacto_web,
-    instagram: businessData.contacto_instagram,
-    facebook: businessData.contacto_facebook,
-    tiktok: businessData.contacto_tiktok,
+    instagram: businessData.instagram || businessData.contacto_instagram,
+    facebook: businessData.facebook || businessData.contacto_facebook,
+    tiktok: businessData.tiktok || businessData.contacto_tiktok,
     twitter: businessData.contacto_twitter,
     photos: photos.length > 0 ? photos : ["https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=1600"], // Fallback image
     schedule: schedule
@@ -274,12 +339,62 @@ export default function BusinessDetailView({ businessData }: { businessData: any
             {session ? (
               <>
                 {/* User Logged In Options */}
-                <button className={`p-2 rounded-full transition-all relative ${scrolled ? (isDarkMode ? 'hover:bg-[#333] text-[#ccc]' : 'hover:bg-[#e5e5e5] text-[#333]') : 'hover:bg-black/20 text-white'}`}>
-                  <Bell size={20} />
-                  {userData.notifications > 0 && (
-                    <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#DA0037] rounded-full border border-transparent animate-pulse"></span>
+                {userData.role !== 'admin' && businessStatus !== 'pending' && (
+                  <Link href="/protected" className="group bg-[#DA0037] hover:bg-[#b0002d] text-white pl-2 pr-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-[#DA0037]/20 hover:scale-105 mr-2">
+                    <div className="bg-white/20 p-1 rounded-full group-hover:bg-white/30 transition-colors">
+                      {businessStatus === 'approved' ? <Pencil size={14} strokeWidth={3} /> : <Plus size={14} strokeWidth={3} />}
+                    </div>
+                    <span>{businessStatus === 'approved' ? 'Editar Anuncio' : 'Publicar'}</span>
+                  </Link>
+                )}
+                <div className="relative" ref={notificationRef}>
+                  <button
+                    onClick={toggleNotifications}
+                    className={`p-2 rounded-full transition-all relative ${scrolled ? (isDarkMode ? 'hover:bg-[#333] text-[#ccc]' : 'hover:bg-[#e5e5e5] text-[#333]') : 'hover:bg-black/20 text-white'}`}
+                  >
+                    <Bell size={20} />
+                    {userData.notifications > 0 && (
+                      <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#DA0037] rounded-full border border-transparent animate-pulse"></span>
+                    )}
+                  </button>
+
+                  {/* Notification Dropdown */}
+                  {isNotificationsOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-[#18181b] border border-[#27272a] rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 transform origin-top-right z-50 p-4">
+                      {businessStatus === 'pending' && (
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
+                            <Bell size={16} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white mb-1">Solicitud Pendiente</h4>
+                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                              Tu comercio <span className="text-white font-medium">{businessName}</span> fue registrado exitosamente. Un administrador debe aceptar la solicitud para que puedas editarlo.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {businessStatus === 'approved' && (
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
+                            <Bell size={16} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white mb-1">Solicitud Aceptada</h4>
+                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                              ¡Felicidades! Tu comercio <span className="text-white font-medium">{businessName}</span> ha sido aceptado. Ya puedes administrarlo y el botón de publicar está disponible nuevamente.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {!businessStatus && (
+                        <div className="text-center py-4">
+                          <p className="text-xs text-[#a1a1aa]">No tienes notificaciones nuevas.</p>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </button>
+                </div>
 
                 {/* Avatar Trigger */}
                 <div className="relative">
@@ -295,47 +410,12 @@ export default function BusinessDetailView({ businessData }: { businessData: any
 
                   {/* --- DROPDOWN MENU (Profile) --- */}
                   {isProfileOpen && (
-                    <div className={`absolute right-0 top-12 w-64 rounded-2xl shadow-2xl border origin-top-right animate-in fade-in slide-in-from-top-2 duration-200 z-50 overflow-hidden ${isDarkMode ? 'bg-[#1E1E1E] border-[#333]' : 'bg-white border-gray-100'}`}>
-                      {/* Header del Dropdown */}
-                      <div className={`p-5 border-b ${isDarkMode ? 'border-[#333]' : 'border-gray-100'}`}>
-                        <h4 className={`font-bold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{userData.name}</h4>
-                        <p className="text-xs text-gray-500 mt-1">{userData.email}</p>
-                        <span className={`inline-block mt-3 text-[10px] font-bold px-2 py-0.5 rounded border ${userData.role === 'merchant' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'} uppercase tracking-wider`}>
-                          {userData.role === 'merchant' ? 'Cuenta Comerciante' : 'Cuenta Vecino'}
-                        </span>
-                      </div>
-
-                      {/* Opciones del Menú */}
-                      <div className="p-2 space-y-1">
-                        {userData.role === 'merchant' && (
-                          <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all ${isDarkMode ? 'text-gray-300 hover:bg-[#DA0037] hover:text-white hover:shadow-lg hover:shadow-red-900/20' : 'text-gray-700 hover:bg-[#DA0037] hover:text-white'}`}>
-                            <LayoutDashboard size={18} />
-                            <span className="font-medium">Panel de Control</span>
-                          </Link>
-                        )}
-
-                        <Link href="#" className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-[#2A2A2A] hover:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                          <UserIcon size={18} />
-                          <span>Editar Perfil</span>
-                        </Link>
-
-                        <Link href="#" className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-[#2A2A2A] hover:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                          <Settings size={18} />
-                          <span>Ajustes</span>
-                        </Link>
-                      </div>
-
-                      {/* Footer Dropdown */}
-                      <div className={`p-2 border-t ${isDarkMode ? 'border-[#333]' : 'border-gray-100'} mt-1`}>
-                        <button
-                          onClick={handleSignOut}
-                          className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${isDarkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'}`}
-                        >
-                          <LogOut size={14} />
-                          Cerrar sesión
-                        </button>
-                      </div>
-                    </div>
+                    <ProfileMenu
+                      user={{ name: userData.name, email: userData.email || undefined }}
+                      role={userData.role}
+                      onClose={() => setIsProfileOpen(false)}
+                      onSignOut={handleSignOut}
+                    />
                   )}
                 </div>
               </>
@@ -399,7 +479,7 @@ export default function BusinessDetailView({ businessData }: { businessData: any
                     <LogIn size={18} /> Iniciar sesión
                   </Link>
                   <Link href="/auth/login" className={`block w-full text-center px-3 py-3 rounded-lg font-bold bg-[#DA0037] text-white`}>
-                    Ingreso Comerciantes
+                    Registro de Comercio
                   </Link>
                 </>
               )}
@@ -514,41 +594,16 @@ export default function BusinessDetailView({ businessData }: { businessData: any
             </section>
 
             {/* Location */}
-            <section className="space-y-6">
-              <div className="flex justify-between items-end">
-                <h2 className="text-2xl font-bold flex items-center gap-3">
-                  <MapPin className="text-[#DA0037]" /> Ubicación
-                </h2>
-                {business.address && (
-                  <button className="text-sm font-bold text-[#DA0037] hover:underline transition-colors flex items-center gap-1 group">
-                    Abrir en Google Maps <ArrowUpRight size={16} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
-                )}
-              </div>
-
+            <section className="space-y-4">
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <MapPin className="text-[#DA0037]" /> Ubicación
+              </h2>
               {business.address ? (
-                <div className={`w-full h-80 ${theme.cardBg} rounded-2xl border ${theme.cardBorder} relative overflow-hidden group ${theme.cardHoverBorder} transition-colors shadow-sm`}>
-                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#888_1px,transparent_1px)] [background-size:20px_20px]"></div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full transform -mt-2">
-                    <div className="relative animate-bounce">
-                      <div className={`w-12 h-12 bg-[#DA0037] rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(218,0,55,0.5)] z-10 relative border-4 ${isDarkMode ? 'border-[#171717]' : 'border-[#EDEDED]'}`}>
-                        <Store size={20} className="text-white" />
-                      </div>
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 w-12 h-3 bg-black/40 rounded-[100%] blur-[6px]"></div>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-6 left-6">
-                    <div className={`${isDarkMode ? 'bg-[#171717]/90' : 'bg-white/90'} backdrop-blur-md px-5 py-3 rounded-xl border ${theme.cardBorder} shadow-xl`}>
-                      <p className={`text-xs ${theme.textMuted} uppercase font-bold mb-1`}>Dirección</p>
-                      <p className="text-sm font-medium">{business.address}</p>
-                    </div>
-                  </div>
+                <div className={`text-lg font-medium ${theme.text}`}>
+                  {business.address}
                 </div>
               ) : (
-                <div className={`w-full h-40 ${theme.cardBg} rounded-2xl border ${theme.cardBorder} flex flex-col items-center justify-center text-center p-6`}>
-                  <MapPinOff size={32} className={`${theme.textMuted} mb-2`} />
-                  <p className={`text-sm font-medium ${theme.textMuted}`}>La ubicación no está disponible en el mapa.</p>
-                </div>
+                <p className={`${theme.textMuted} italic`}>Ubicación no disponible</p>
               )}
             </section>
 

@@ -8,6 +8,14 @@ import {
   Instagram, Facebook, Globe, Music, MessageCircle, Twitter,
   ChevronDown, Filter, X, RefreshCcw, Home, Sun, Moon
 } from 'lucide-react';
+import { slugify } from '@/lib/utils';
+
+// Icono X (Twitter)
+const XIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none" className={className}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 type Listing = {
   id: string;
@@ -23,6 +31,8 @@ type Listing = {
   facebook?: string | null;
   whatsapp?: string | null;
   tiktok?: string | null;
+  contacto_twitter?: string | null;
+  contacto_web?: string | null;
   anuncio_solicitud_imagenes?: { url: string; orden: number | null }[];
 };
 
@@ -61,6 +71,44 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
     setMobileMenuOpen(false);
   };
 
+  // Helper to format schedule
+  const formatSchedule = (scheduleJson: string | null) => {
+    if (!scheduleJson) return "Horario no disponible";
+    try {
+      const schedule = JSON.parse(scheduleJson);
+      if (!schedule.days || schedule.days.length === 0) return "Cerrado temporalmente";
+
+      const daysMap: { [key: number]: string } = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 0: 'Dom' };
+      const sortedDays = schedule.days.sort((a: number, b: number) => {
+        // Adjust sort so Monday (1) comes first, Sunday (0) comes last if needed, or just standard sort
+        // If 0 is Sunday, usually we want it at the end or beginning. Let's stick to standard 0-6 but display order might matter.
+        // Let's treat 0 as 7 for sorting purposes to have Mon-Sun order
+        const aVal = a === 0 ? 7 : a;
+        const bVal = b === 0 ? 7 : b;
+        return aVal - bVal;
+      });
+
+      // Check for ranges (e.g. Mon-Fri)
+      let dayString = "";
+      const isSequential = sortedDays.every((day: number, i: number) => {
+        if (i === 0) return true;
+        const prev = sortedDays[i - 1] === 0 ? 7 : sortedDays[i - 1];
+        const curr = day === 0 ? 7 : day;
+        return curr === prev + 1;
+      });
+
+      if (isSequential && sortedDays.length > 2) {
+        dayString = `${daysMap[sortedDays[0]]} - ${daysMap[sortedDays[sortedDays.length - 1]]}`;
+      } else {
+        dayString = sortedDays.map((d: number) => daysMap[d]).join(", ");
+      }
+
+      return `${dayString} ${schedule.time.start} - ${schedule.time.end}`;
+    } catch (e) {
+      return "Horario no disponible";
+    }
+  };
+
   // Map Supabase data to the structure used in the design (for easier rendering)
   const businesses = useMemo(() => listings.map(l => ({
     id: l.id,
@@ -68,17 +116,18 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
     category: l.categoria_principal || "Sin categoría",
     subcategory: l.subcategoria || "General",
     description: l.descripcion || "",
-    image: firstImage(l) || "https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?auto=format&fit=crop&q=80",
+    image: firstImage(l) || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80",
     address: l.direccion || "Dirección no disponible",
     phone: l.telefono_snapshot || "",
-    hours: l.horario || "Horario no disponible",
+    hours: formatSchedule(l.horario),
     status: 'open', // Placeholder
     socials: {
       instagram: l.instagram,
       facebook: l.facebook,
       whatsapp: l.whatsapp,
       tiktok: l.tiktok,
-      web: null
+      twitter: l.contacto_twitter,
+      web: l.contacto_web
     }
   })), [listings]);
 
@@ -324,7 +373,7 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
               >
 
                 {/* Imagen Cover */}
-                <Link href={`/comercios/${biz.id}`} className={`relative h-72 overflow-hidden bg-[#eee] dark:bg-[#111] block`}>
+                <Link href={`/comercios/${slugify(biz.name)}`} className={`relative h-72 overflow-hidden bg-[#eee] dark:bg-[#111] block`}>
                   {biz.image ? (
                     <img
                       src={biz.image}
@@ -339,10 +388,10 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
                 {/* Contenido Principal */}
                 <div className="p-7 flex-1 flex flex-col relative z-10">
                   <div className="mb-5">
-                    <span className="text-[#DA0037] text-[10px] font-bold uppercase tracking-wider mb-2 block opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 delay-75">
+                    <span className="text-[#DA0037] text-[10px] font-bold uppercase tracking-wider mb-2 block transition-all duration-300">
                       {biz.category} • {biz.subcategory}
                     </span>
-                    <Link href={`/comercios/${biz.id}`} className="block">
+                    <Link href={`/comercios/${slugify(biz.name)}`} className="block">
                       <h3 className={`text-2xl font-bold ${textPrimary} group-hover:text-[#DA0037] transition-colors mb-3 leading-tight break-words`}>
                         {biz.name}
                       </h3>
@@ -374,35 +423,38 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
                   <div className="mt-6 flex items-center justify-between">
                     <div className="flex gap-2">
                       {biz.socials.instagram && (
-                        <a href={biz.socials.instagram} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-gradient-to-tr hover:from-yellow-500 hover:via-pink-500 hover:to-purple-500 transition-all duration-300 hover:scale-110`} title="Instagram">
-                          <Instagram size={16} />
+                        <a href={biz.socials.instagram} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-gradient-to-tr hover:from-yellow-500 hover:via-pink-500 hover:to-purple-500 transition-all duration-300 hover:scale-125 hover:-translate-y-1 shadow-sm hover:shadow-md`} title="Instagram">
+                          <Instagram size={18} />
                         </a>
                       )}
                       {biz.socials.facebook && (
-                        <a href={biz.socials.facebook} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-[#1877F2] transition-all duration-300 hover:scale-110`} title="Facebook">
-                          <Facebook size={16} />
+                        <a href={biz.socials.facebook} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-[#1877F2] transition-all duration-300 hover:scale-125 hover:-translate-y-1 shadow-sm hover:shadow-md`} title="Facebook">
+                          <Facebook size={18} />
                         </a>
                       )}
                       {biz.socials.whatsapp && (
-                        <a href={biz.socials.whatsapp} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-[#25D366] transition-all duration-300 hover:scale-110`} title="WhatsApp">
-                          <MessageCircle size={16} />
+                        <a href={biz.socials.whatsapp} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-[#25D366] transition-all duration-300 hover:scale-125 hover:-translate-y-1 shadow-sm hover:shadow-md`} title="WhatsApp">
+                          <MessageCircle size={18} />
                         </a>
                       )}
                       {biz.socials.tiktok && (
-                        <a href={biz.socials.tiktok} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-black hover:shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all duration-300 hover:scale-110`} title="TikTok">
-                          <Music size={16} />
+                        <a href={biz.socials.tiktok} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-black hover:shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all duration-300 hover:scale-125 hover:-translate-y-1 shadow-sm hover:shadow-md`} title="TikTok">
+                          <Music size={18} />
+                        </a>
+                      )}
+                      {biz.socials.twitter && (
+                        <a href={biz.socials.twitter} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-black transition-all duration-300 hover:scale-125 hover:-translate-y-1 shadow-sm hover:shadow-md`} title="X (Twitter)">
+                          <XIcon size={16} />
                         </a>
                       )}
                       {biz.socials.web && (
-                        <a href={biz.socials.web} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-[#333] border border-transparent hover:border-[#555] transition-all duration-300 hover:scale-110`} title="Sitio Web">
-                          <Globe size={16} />
+                        <a href={biz.socials.web} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-[#333] border border-transparent hover:border-[#555] transition-all duration-300 hover:scale-125 hover:-translate-y-1 shadow-sm hover:shadow-md`} title="Sitio Web">
+                          <Globe size={18} />
                         </a>
                       )}
                     </div>
 
-                    <Link href={`/comercios/${biz.id}`} className={`hover:text-[#DA0037] flex items-center justify-center transition-all group/btn ${textPrimary}`}>
-                      <ArrowUpRight size={20} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
-                    </Link>
+
                   </div>
                 </div>
               </div>

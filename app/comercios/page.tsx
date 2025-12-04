@@ -21,7 +21,7 @@ export default async function ComerciosPage() {
   const { data } = await adminClient
     .from("anuncio_solicitudes")
     .select(
-      "id,titulo,descripcion,categoria_principal,subcategoria,direccion,horario,mostrar_telefono,telefono_snapshot,instagram,facebook,whatsapp,tiktok,anuncio_solicitud_imagenes(url,orden)",
+      "id,titulo,descripcion,categoria_principal,subcategoria,direccion,horario,mostrar_telefono,telefono_snapshot,instagram,facebook,whatsapp,tiktok,contacto_twitter,contacto_web,anuncio_solicitud_imagenes(url,orden)",
     )
     .eq("estado", "approved")
     .order("created_at", { ascending: false });

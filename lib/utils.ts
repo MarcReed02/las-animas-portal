@@ -9,3 +9,16 @@ export function cn(...inputs: ClassValue[]) {
 export const hasEnvVars =
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY;
+
+export function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-');
+}
+

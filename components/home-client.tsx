@@ -87,7 +87,7 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
   // --- DATOS ---
   const heroImages = [
     {
-      url: "https://images.unsplash.com/photo-1517260739337-6799d2dcbe38?auto=format&fit=crop&q=80",
+      url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80",
       alt: "Vista nocturna del barrio"
     },
     {
@@ -129,41 +129,7 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
     };
   });
 
-  // Fallback if no news
-  if (agendaItems.length === 0) {
-    agendaItems.push(
-      {
-        id: 1,
-        image: "https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&q=80",
-        title: "Feria Gastronómica Las Ánimas",
-        date: "15 Oct",
-        time: "12:00 PM",
-        location: "Plaza Mayor",
-        price: "Entrada Liberada",
-        category: "Gastronomía"
-      },
-      {
-        id: 2,
-        image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80",
-        title: "Noche de Museos: Historia del Barrio",
-        date: "20 Oct",
-        time: "19:00 PM",
-        location: "Centro Cultural",
-        price: "$2.000",
-        category: "Cultura"
-      },
-      {
-        id: 3,
-        image: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80",
-        title: "Torneo Deportivo Inter-Barrios",
-        date: "25 Oct",
-        time: "09:00 AM",
-        location: "Gimnasio Municipal",
-        price: "Gratis",
-        category: "Deporte"
-      }
-    );
-  }
+
 
   const urbanProjects = [
     {
@@ -293,106 +259,69 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {agendaItems.map((item) => (
-              <article
-                key={item.id}
-                className={`group relative rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer ${surfaceClass}`}
-              >
-                <div className="relative h-48 overflow-hidden">
-                  {/* Imagen con Zoom al Hover */}
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className={`absolute top-4 right-4 backdrop-blur-md border px-3 py-1 rounded-full text-xs font-bold uppercase ${isDarkMode ? 'bg-[#171717]/80 border-[#444444] text-[#EDEDED]' : 'bg-white/80 border-[#EDEDED] text-[#171717]'}`}>
-                    {item.category}
-                  </div>
-                </div>
-
-                <div className="p-6 flex flex-col flex-1">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`flex flex-col items-center justify-center p-2 rounded-lg border w-14 h-14 ${isDarkMode ? 'bg-[#171717] border-[#444444] text-[#EDEDED]' : 'bg-white border-[#EDEDED] text-[#171717]'}`}>
-                      <span className="text-xs font-bold uppercase">{item.date.split(' ')[1]}</span>
-                      <span className="text-xl font-black">{item.date.split(' ')[0]}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className={`block text-xs font-medium mb-1 ${textTertiary}`}>{item.price}</span>
+            {agendaItems.length > 0 ? (
+              agendaItems.map((item) => (
+                <article
+                  key={item.id}
+                  className={`group relative rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer ${surfaceClass}`}
+                >
+                  <div className="relative h-48 overflow-hidden">
+                    {/* Imagen con Zoom al Hover */}
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className={`absolute top-4 right-4 backdrop-blur-md border px-3 py-1 rounded-full text-xs font-bold uppercase ${isDarkMode ? 'bg-[#171717]/80 border-[#444444] text-[#EDEDED]' : 'bg-white/80 border-[#EDEDED] text-[#171717]'}`}>
+                      {item.category}
                     </div>
                   </div>
-                  <h4 className={`text-lg font-bold mb-3 leading-tight group-hover:text-[#DA0037] transition-colors ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
-                    {item.title}
-                  </h4>
-                  <div className="space-y-2 mt-auto">
-                    <div className={`flex items-center gap-2 text-xs ${textSecondary}`}>
-                      <Clock size={14} className={accentText} /> {item.time}
+
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`flex flex-col items-center justify-center p-2 rounded-lg border w-14 h-14 ${isDarkMode ? 'bg-[#171717] border-[#444444] text-[#EDEDED]' : 'bg-white border-[#EDEDED] text-[#171717]'}`}>
+                        <span className="text-xs font-bold uppercase">{item.date.split(' ')[1]}</span>
+                        <span className="text-xl font-black">{item.date.split(' ')[0]}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`block text-xs font-medium mb-1 ${textTertiary}`}>{item.price}</span>
+                      </div>
                     </div>
-                    <div className={`flex items-center gap-2 text-xs ${textSecondary}`}>
-                      <MapPin size={14} className={accentText} /> {item.location}
+                    <h4 className={`text-lg font-bold mb-3 leading-tight group-hover:text-[#DA0037] transition-colors ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
+                      {item.title}
+                    </h4>
+                    <div className="space-y-2 mt-auto">
+                      <div className={`flex items-center gap-2 text-xs ${textSecondary}`}>
+                        <Clock size={14} className={accentText} /> {item.time}
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs ${textSecondary}`}>
+                        <MapPin size={14} className={accentText} /> {item.location}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* --- PROYECTOS URBANOS --- */}
-      <section className={`py-20 px-4 sm:px-6 lg:px-8 border-t ${isDarkMode ? 'bg-[#171717] border-[#444444]' : 'bg-[#fcfcfc] border-[#EDEDED]'}`}>
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12">
-            <h2 className={`text-sm font-bold tracking-widest uppercase mb-2 ${accentText}`}>
-              Transformación del Barrio
-            </h2>
-            <h3 className={`text-3xl md:text-4xl font-black tracking-tight ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
-              Proyectos en Curso
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {urbanProjects.map((project) => (
-              <div key={project.id} className={`group flex flex-col sm:flex-row gap-6 p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${surfaceClass}`}>
-                <div className="w-full sm:w-1/3 h-40 rounded-xl overflow-hidden shrink-0">
-                  <img src={project.image} alt={project.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                </div>
-                <div className="flex-1 flex flex-col justify-center">
-                  <div className="flex items-center gap-2 mb-2">
-                    <HardHat size={16} className={accentText} />
-                    <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-[#EDEDED]/60' : 'text-[#444444]'}`}>
-                      {project.status}
-                    </span>
-                  </div>
-                  <h4 className={`text-xl font-bold mb-4 transition-colors group-hover:text-[#DA0037] ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
-                    {project.title}
-                  </h4>
-
-                  <div className={`w-full h-2 rounded-full mb-2 overflow-hidden ${isDarkMode ? 'bg-[#444444]/50' : 'bg-[#EDEDED]'}`}>
-                    <div
-                      className="h-full bg-[#DA0037]"
-                      style={{ width: `${project.progress}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs mb-4">
-                    <span className={textTertiary}>Progreso</span>
-                    <span className={`font-bold ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>{project.progress}%</span>
-                  </div>
-
-                  <div className={`text-xs p-3 rounded-lg border ${isDarkMode ? 'bg-[#171717] border-[#444444] text-[#EDEDED]/80' : 'bg-[#f8f8f8] border-[#EDEDED] text-[#444444]'}`}>
-                    <span className={`font-bold block mb-1 ${accentText}`}>Último Hito:</span>
-                    {project.milestone}
-                  </div>
-                </div>
+                </article>
+              ))
+            ) : (
+              <div className={`col-span-full flex flex-col items-center justify-center py-16 text-center border-2 border-dashed rounded-2xl ${isDarkMode ? 'border-[#444444] bg-[#171717]/50' : 'border-[#EDEDED] bg-gray-50'}`}>
+                <Calendar size={48} className={`mb-4 ${isDarkMode ? 'text-[#444444]' : 'text-gray-300'}`} />
+                <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
+                  No hay actividades programadas
+                </h3>
+                <p className={`max-w-md ${textSecondary}`}>
+                  Por el momento no tenemos eventos o noticias para mostrar. ¡Vuelve pronto para enterarte de las novedades del barrio!
+                </p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
+
+
 
       {/* --- CTA: ANIMACIONES PROFESIONALES --- */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src="https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?auto=format&fit=crop&q=80" className="w-full h-full object-cover opacity-20 filter grayscale" alt="Comercio" />
+          <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80" className="w-full h-full object-cover opacity-20 filter grayscale" alt="Comercio" />
           <div className={`absolute inset-0 ${isDarkMode ? 'bg-[#DA0037]/90' : 'bg-[#DA0037]/95'}`}></div>
         </div>
 

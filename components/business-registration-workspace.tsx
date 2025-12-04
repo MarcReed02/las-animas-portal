@@ -38,6 +38,12 @@ const TikTokIcon = ({ size = 18, className }: { size?: number, className?: strin
   </svg>
 );
 
+const XIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+  </svg>
+);
+
 // Componentes UI extraídos para evitar re-renders
 const MinimalInput = ({
   label,
@@ -91,42 +97,83 @@ const MinimalInput = ({
   </div>
 );
 
-const TimeButton = ({ value, onChange, label, themeColors, error, touched, onBlur }: any) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let input = e.target.value.replace(/\D/g, ''); // Solo números
-    if (input.length > 4) input = input.slice(0, 4);
+const TimePicker = ({ value, onChange, disabled, label }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-    if (input.length >= 3) {
-      input = input.slice(0, 2) + ':' + input.slice(2);
-    }
+  useEffect(() => {
+    const handleClickOutside = (event: any) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    onChange(input);
+  const [hours24, minutes] = value ? value.split(':').map(Number) : [9, 0];
+  const period = hours24 >= 12 ? 'PM' : 'AM';
+  const hours12 = hours24 % 12 || 12;
+
+  const updateTime = (h: number, m: number, p: string) => {
+    let newH = h;
+    if (p === 'PM' && newH < 12) newH += 12;
+    if (p === 'AM' && newH === 12) newH = 0;
+    onChange(`${newH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
   };
 
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  const mins = Array.from({ length: 60 }, (_, i) => i);
+  const periods = ['AM', 'PM'];
+
   return (
-    <div className="relative group flex-1">
-      <div className="flex justify-between items-center absolute -top-5 left-0 w-full px-1">
-        <label className={`text-[10px] ${themeColors.textTertiary} font-bold uppercase tracking-wider ${touched && error ? 'text-red-500' : ''}`}>
-          {label}
-        </label>
-      </div>
-      <div className={`relative ${themeColors.bgTertiary} ${themeColors.hoverBg} border ${touched && error ? 'border-red-500' : `border-transparent ${themeColors.borderSecondary}`} rounded-xl overflow-hidden transition-all duration-300 group-focus-within:border-[#DA0037] group-focus-within:shadow-[0_0_15px_rgba(218,0,55,0.1)]`}>
-        <input
-          type="text"
-          value={value}
-          onChange={handleChange}
-          onBlur={onBlur}
-          maxLength={5}
-          placeholder="00:00"
-          onFocus={(e) => e.target.select()}
-          className={`w-full bg-transparent ${themeColors.textPrimary} text-center text-sm font-mono py-4 focus:outline-none`}
-        />
-        <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-[#52525b] group-hover:text-[#DA0037] transition-colors`}>
-          <Clock size={14} />
+    <div className="relative group/time" ref={containerRef}>
+      <label className="text-[10px] font-bold text-[#71717a] uppercase tracking-wider mb-3 block pl-2 group-hover/time:text-[#DA0037] transition-colors">{label}</label>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between bg-white dark:bg-[#202023] border border-gray-200 dark:border-[#27272a] rounded-2xl px-6 py-5 transition-all duration-300
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#DA0037] hover:shadow-[0_0_15px_rgba(218,0,55,0.1)] hover:-translate-y-1'}
+          ${isOpen ? 'border-[#DA0037] ring-1 ring-[#DA0037]' : ''}
+        `}
+      >
+        <span className="text-3xl text-gray-900 dark:text-white font-mono font-light tracking-wide">
+          {hours12.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')} <span className="text-lg text-gray-500 dark:text-[#71717a] font-bold ml-1">{period}</span>
+        </span>
+        <Clock size={20} className={`transition-colors ${isOpen ? 'text-[#DA0037]' : 'text-gray-400 dark:text-[#52525b]'}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-xl shadow-2xl z-50 flex h-64 overflow-hidden animate-fade-in">
+          {/* Hours */}
+          <div className="flex-1 overflow-y-auto border-r border-gray-200 dark:border-[#27272a] scrollbar-hide">
+            <div className="sticky top-0 bg-white dark:bg-[#18181b] text-[10px] text-center py-2 text-gray-500 dark:text-[#71717a] font-bold uppercase border-b border-gray-200 dark:border-[#27272a] z-10">Hora</div>
+            {hours.map(h => (
+              <button key={h} onClick={() => updateTime(h, minutes, period)} className={`w-full py-3 text-center hover:bg-gray-100 dark:hover:bg-[#27272a] transition-colors ${h === hours12 ? 'text-[#DA0037] font-bold bg-gray-100 dark:bg-[#27272a]' : 'text-gray-400 dark:text-[#a1a1aa]'}`}>
+                {h.toString().padStart(2, '0')}
+              </button>
+            ))}
+          </div>
+          {/* Minutes */}
+          <div className="flex-1 overflow-y-auto border-r border-gray-200 dark:border-[#27272a] scrollbar-hide">
+            <div className="sticky top-0 bg-white dark:bg-[#18181b] text-[10px] text-center py-2 text-gray-500 dark:text-[#71717a] font-bold uppercase border-b border-gray-200 dark:border-[#27272a] z-10">Min</div>
+            {mins.map(m => (
+              <button key={m} onClick={() => updateTime(hours12, m, period)} className={`w-full py-3 text-center hover:bg-gray-100 dark:hover:bg-[#27272a] transition-colors ${m === minutes ? 'text-[#DA0037] font-bold bg-gray-100 dark:bg-[#27272a]' : 'text-gray-400 dark:text-[#a1a1aa]'}`}>
+                {m.toString().padStart(2, '0')}
+              </button>
+            ))}
+          </div>
+          {/* Period */}
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
+            <div className="sticky top-0 bg-white dark:bg-[#18181b] text-[10px] text-center py-2 text-gray-500 dark:text-[#71717a] font-bold uppercase border-b border-gray-200 dark:border-[#27272a] z-10">AM/PM</div>
+            {periods.map(p => (
+              <button key={p} onClick={() => updateTime(hours12, minutes, p)} className={`w-full py-3 text-center hover:bg-gray-100 dark:hover:bg-[#27272a] transition-colors ${p === period ? 'text-[#DA0037] font-bold bg-gray-100 dark:bg-[#27272a]' : 'text-gray-400 dark:text-[#a1a1aa]'}`}>
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-      {touched && error && (
-        <span className="absolute -bottom-5 left-0 text-[10px] text-red-500 font-medium animate-fade-in w-full text-center">{error}</span>
       )}
     </div>
   );
@@ -384,7 +431,7 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
       }
 
       // 4. Success
-      router.push('/dashboard'); // Redirect to dashboard or success page
+      router.push('/'); // Redirect to home
       router.refresh();
 
     } catch (error) {
@@ -595,32 +642,28 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-6 items-center">
-                  <TimeButton
-                    label="Apertura"
-                    value={scheduleTime.start}
-                    onChange={(val: string) => handleChange('scheduleStart', val, (v: string) => setScheduleTime(prev => ({ ...prev, start: v })))}
-                    onBlur={() => handleBlur('scheduleStart', scheduleTime.start)}
-                    error={errors.scheduleStart}
-                    touched={touched.scheduleStart}
-                    themeColors={themeColors}
-                  />
+                  <div className="flex-1 w-full">
+                    <TimePicker
+                      label="Apertura"
+                      value={scheduleTime.start}
+                      onChange={(val: string) => setScheduleTime(prev => ({ ...prev, start: val }))}
+                    />
+                  </div>
 
                   <div className={`w-8 h-px ${borderSecondary} md:w-px md:h-8`}></div>
 
-                  <TimeButton
-                    label="Cierre"
-                    value={scheduleTime.end}
-                    onChange={(val: string) => handleChange('scheduleEnd', val, (v: string) => setScheduleTime(prev => ({ ...prev, end: v })))}
-                    onBlur={() => handleBlur('scheduleEnd', scheduleTime.end)}
-                    error={errors.scheduleEnd}
-                    touched={touched.scheduleEnd}
-                    themeColors={themeColors}
-                  />
+                  <div className="flex-1 w-full">
+                    <TimePicker
+                      label="Cierre"
+                      value={scheduleTime.end}
+                      onChange={(val: string) => setScheduleTime(prev => ({ ...prev, end: val }))}
+                    />
+                  </div>
                 </div>
 
                 {/* Feedback visual de estado */}
                 <div className={`mt-4 flex items-center justify-center gap-2 text-xs ${textTertiary}`}>
-                  <div className={`w-2 h-2 rounded-full ${hasSchedule ? 'bg-green-500' : borderSecondary}`}></div>
+                  <div className={`w-2.5 h-2.5 rounded-full ${hasSchedule ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-[#3f3f46]'}`}></div>
                   {hasSchedule
                     ? `Horario establecido: ${scheduleTime.start} - ${scheduleTime.end}`
                     : 'Selecciona una hora de apertura y cierre'}
@@ -693,7 +736,7 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
               <MinimalInput label="Instagram" placeholder="@usuario" value={instagram} onChange={(e: any) => setInstagram(e.target.value)} icon={Instagram} delay={550} mounted={mounted} focusedField={focusedField} setFocusedField={setFocusedField} themeColors={themeColors} />
               <MinimalInput label="Facebook" placeholder="/pagina" value={facebook} onChange={(e: any) => setFacebook(e.target.value)} icon={Facebook} delay={600} mounted={mounted} focusedField={focusedField} setFocusedField={setFocusedField} themeColors={themeColors} />
               <MinimalInput label="TikTok" placeholder="@usuario" value={tiktok} onChange={(e: any) => setTiktok(e.target.value)} icon={TikTokIcon} delay={650} mounted={mounted} focusedField={focusedField} setFocusedField={setFocusedField} themeColors={themeColors} />
-              <MinimalInput label="Twitter" placeholder="@usuario" value={twitter} onChange={(e: any) => setTwitter(e.target.value)} icon={Twitter} delay={700} mounted={mounted} focusedField={focusedField} setFocusedField={setFocusedField} themeColors={themeColors} />
+              <MinimalInput label="X" placeholder="@usuario" value={twitter} onChange={(e: any) => setTwitter(e.target.value)} icon={XIcon} delay={700} mounted={mounted} focusedField={focusedField} setFocusedField={setFocusedField} themeColors={themeColors} />
             </div>
           </section>
 
@@ -732,15 +775,6 @@ export default function BusinessRegistrationWorkspace({ user, categoryGroups }: 
                     )}
                   </div>
                 ))}
-              </div>
-
-              <div className={`p-4 rounded-xl ${bgTertiary} mb-8`}>
-                <div className="flex items-start gap-3">
-                  <Sparkles size={16} className="text-[#DA0037] mt-1 shrink-0" />
-                  <p className={`text-xs ${textSecondary} leading-relaxed`}>
-                    <strong className={textPrimary}>Tip Pro:</strong> Completa tu perfil al 100% para aparecer destacado en la página principal durante 48 horas.
-                  </p>
-                </div>
               </div>
 
               <button

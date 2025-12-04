@@ -54,10 +54,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    // Generate a short-lived signed URL for preview (bucket is private)
-    const signed = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60)
-    const signedUrl = signed.data?.signedUrl || null
-    return NextResponse.json({ path, signedUrl })
+    // Generate public URL (assuming bucket is public for news)
+    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(path)
+
+    return NextResponse.json({
+      path,
+      url: publicData.publicUrl
+    })
   } catch (e: any) {
     console.error('UPLOAD_UNCAUGHT', e)
     return NextResponse.json({ error: e?.message || 'Upload failed' }, { status: 500 })

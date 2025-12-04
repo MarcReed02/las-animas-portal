@@ -4,11 +4,12 @@ import { useTheme } from 'next-themes';
 import {
   Sun, Moon, Bell, Menu, X,
   User as UserIcon, LogOut, Settings, LayoutDashboard,
-  Plus, Heart
+  Plus, Heart, Pencil
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Session, User } from '@supabase/supabase-js';
+import ProfileMenu from './profile-menu';
 
 interface NavbarLoggedProps {
   session?: Session;
@@ -21,6 +22,24 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [businessStatus, setBusinessStatus] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState<string | null>(null);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleNotifications = () => setIsNotificationsOpen(!isNotificationsOpen);
+
   const router = useRouter();
   const supabase = createClient();
 
@@ -41,17 +60,54 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
     return "Usuario";
   };
 
-  const userData = {
-    name: getDisplayName(),
-    email: currentUser?.email,
-    role: "merchant", // Cambiar a 'neighbor' para ver la diferencia
-    notifications: 5,
-    messages: 2
-  };
-
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const fetchRoleAndBusiness = async () => {
+      if (currentUser?.id) {
+        // Fetch Role
+        const { data: userData } = await supabase
+          .from('usuarios')
+          .select('rol')
+          .eq('id', currentUser.id)
+          .single();
+        if (userData) {
+          setUserRole(userData.rol);
+        }
+
+        // Fetch Business Status via API to bypass RLS issues
+        try {
+          const res = await fetch('/api/user/business-status');
+
+          if (res.status === 401) {
+            // Session is invalid/expired on server. Force refresh/logout.
+            console.warn("Session expired. Refreshing...");
+            await supabase.auth.signOut();
+            window.location.reload();
+            return;
+          }
+
+          if (res.ok) {
+            const businessData = await res.json();
+            if (businessData && businessData.estado) {
+              setBusinessStatus(businessData.estado);
+              setBusinessName(businessData.titulo);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching business status:", error);
+        }
+      }
+    };
+    fetchRoleAndBusiness();
+  }, [currentUser, supabase]);
+
+  const userData = {
+    name: userRole === 'admin' ? "Administrador" : getDisplayName(),
+    email: currentUser?.email,
+    role: userRole || "neighbor",
+    notifications: (businessStatus === 'pending' || businessStatus === 'approved') ? 1 : 0,
+    messages: 2
+  };
 
   const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
 
@@ -109,10 +165,10 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
               ) : (
                 /* STANDARD LINKS MODE */
                 <>
-                  {['Inicio', 'Directorio', 'Agenda', 'Proyectos', 'Nosotros'].map((item) => (
+                  {['Inicio', 'Comercios', 'Nosotros'].map((item) => (
                     <Link
                       key={item}
-                      href={item === 'Directorio' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+                      href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
                       className={`text-sm font-medium transition-colors duration-200 hover:text-[#DA0037] ${textSecondary}`}
                     >
                       {item}
@@ -125,20 +181,14 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
               {/* ZONA DE ACCIÓN DEL USUARIO */}
               <div className="flex items-center gap-3">
                 {/* Botón Publicar / Favoritos - Only show if NOT in progress mode or if desired */}
-                {progress === undefined && (
-                  userData.role === 'merchant' ? (
-                    <button className="group bg-[#DA0037] hover:bg-[#b0002d] text-white pl-2 pr-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-[#DA0037]/20 hover:scale-105">
-                      <div className="bg-white/20 p-1 rounded-full group-hover:bg-white/30 transition-colors">
-                        <Plus size={14} strokeWidth={3} />
-                      </div>
-                      <span>Publicar</span>
-                    </button>
-                  ) : (
-                    <button className={`border border-[#DA0037] text-[#DA0037] hover:bg-[#DA0037] hover:text-white px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-2 transition-all`}>
-                      <Heart size={14} strokeWidth={2.5} />
-                      <span>Favoritos</span>
-                    </button>
-                  )
+                {/* Botón Publicar / Editar - Only show if NOT in progress mode and NOT admin and NOT pending */}
+                {progress === undefined && userData.role !== 'admin' && businessStatus !== 'pending' && (
+                  <Link href="/protected" className="group bg-[#DA0037] hover:bg-[#b0002d] text-white pl-2 pr-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-[#DA0037]/20 hover:scale-105">
+                    <div className="bg-white/20 p-1 rounded-full group-hover:bg-white/30 transition-colors">
+                      {businessStatus === 'approved' ? <Pencil size={14} strokeWidth={3} /> : <Plus size={14} strokeWidth={3} />}
+                    </div>
+                    <span>{businessStatus === 'approved' ? 'Editar Anuncio' : 'Publicar'}</span>
+                  </Link>
                 )}
 
                 {/* Theme Toggle */}
@@ -150,12 +200,55 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
                 </button>
 
                 {/* Notificaciones */}
-                <button className={`p-2 rounded-full relative transition-all ${isDarkMode ? 'bg-[#444444]/30 text-[#EDEDED] hover:bg-[#444444]/50' : 'bg-[#EDEDED] text-[#444444] hover:bg-[#e5e5e5]'}`}>
-                  <Bell size={18} />
-                  {userData.notifications > 0 && (
-                    <span className="absolute top-1.5 right-2 w-2 h-2 bg-[#DA0037] rounded-full ring-2 ring-[#1E1E1E] animate-pulse"></span>
+                {/* Notificaciones */}
+                <div className="relative" ref={notificationRef}>
+                  <button
+                    onClick={toggleNotifications}
+                    className={`p-2 rounded-full relative transition-all ${isDarkMode ? 'bg-[#444444]/30 text-[#EDEDED] hover:bg-[#444444]/50' : 'bg-[#EDEDED] text-[#444444] hover:bg-[#e5e5e5]'}`}
+                  >
+                    <Bell size={18} />
+                    {userData.notifications > 0 && (
+                      <span className="absolute top-1.5 right-2 w-2 h-2 bg-[#DA0037] rounded-full ring-2 ring-[#1E1E1E] animate-pulse"></span>
+                    )}
+                  </button>
+
+                  {/* Notification Dropdown */}
+                  {isNotificationsOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-[#18181b] border border-[#27272a] rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 transform origin-top-right z-50 p-4">
+                      {businessStatus === 'pending' && (
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
+                            <Bell size={16} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white mb-1">Solicitud Pendiente</h4>
+                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                              Tu comercio <span className="text-white font-medium">{businessName}</span> fue registrado exitosamente. Un administrador debe aceptar la solicitud para que puedas editarlo.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {businessStatus === 'approved' && (
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
+                            <Bell size={16} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white mb-1">Solicitud Aceptada</h4>
+                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                              ¡Felicidades! Tu comercio <span className="text-white font-medium">{businessName}</span> ha sido aceptado. Ya puedes administrarlo y el botón de publicar está disponible nuevamente.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {!businessStatus && (
+                        <div className="text-center py-4">
+                          <p className="text-xs text-[#a1a1aa]">No tienes notificaciones nuevas.</p>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </button>
+                </div>
 
                 {/* Avatar Trigger */}
                 <div className="relative">
@@ -171,47 +264,12 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
 
                   {/* --- DROPDOWN MENU (Profile) --- */}
                   {isProfileOpen && (
-                    <div className={`absolute right-0 top-12 w-64 rounded-2xl shadow-2xl border origin-top-right animate-in fade-in slide-in-from-top-2 duration-200 z-50 overflow-hidden ${isDarkMode ? 'bg-[#1E1E1E] border-[#333]' : 'bg-white border-gray-100'}`}>
-                      {/* Header del Dropdown */}
-                      <div className={`p-5 border-b ${isDarkMode ? 'border-[#333]' : 'border-gray-100'}`}>
-                        <h4 className={`font-bold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{userData.name}</h4>
-                        <p className="text-xs text-gray-500 mt-1">{userData.email}</p>
-                        <span className={`inline-block mt-3 text-[10px] font-bold px-2 py-0.5 rounded border ${userData.role === 'merchant' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'} uppercase tracking-wider`}>
-                          {userData.role === 'merchant' ? 'Cuenta Comerciante' : 'Cuenta Vecino'}
-                        </span>
-                      </div>
-
-                      {/* Opciones del Menú */}
-                      <div className="p-2 space-y-1">
-                        {userData.role === 'merchant' && (
-                          <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all ${isDarkMode ? 'text-gray-300 hover:bg-[#DA0037] hover:text-white hover:shadow-lg hover:shadow-red-900/20' : 'text-gray-700 hover:bg-[#DA0037] hover:text-white'}`}>
-                            <LayoutDashboard size={18} />
-                            <span className="font-medium">Panel de Control</span>
-                          </Link>
-                        )}
-
-                        <Link href="#" className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-[#2A2A2A] hover:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                          <UserIcon size={18} />
-                          <span>Editar Perfil</span>
-                        </Link>
-
-                        <Link href="#" className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-[#2A2A2A] hover:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                          <Settings size={18} />
-                          <span>Ajustes</span>
-                        </Link>
-                      </div>
-
-                      {/* Footer Dropdown */}
-                      <div className={`p-2 border-t ${isDarkMode ? 'border-[#333]' : 'border-gray-100'} mt-1`}>
-                        <button
-                          onClick={handleSignOut}
-                          className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${isDarkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'}`}
-                        >
-                          <LogOut size={14} />
-                          Cerrar sesión
-                        </button>
-                      </div>
-                    </div>
+                    <ProfileMenu
+                      user={{ name: userData.name, email: userData.email || undefined }}
+                      role={userData.role}
+                      onClose={() => setIsProfileOpen(false)}
+                      onSignOut={handleSignOut}
+                    />
                   )}
                 </div>
               </div>
@@ -234,10 +292,10 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
       {isMenuOpen && (
         <div className={`md:hidden absolute w-full px-4 pt-2 pb-6 border-b shadow-xl ${isDarkMode ? 'bg-[#171717] border-[#444444]' : 'bg-white border-[#EDEDED]'}`}>
           <div className="space-y-3">
-            {['Inicio', 'Directorio', 'Agenda', 'Proyectos', 'Nosotros'].map((item) => (
+            {['Inicio', 'Comercios', 'Nosotros'].map((item) => (
               <Link
                 key={item}
-                href={item === 'Directorio' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+                href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
                 className={`block px-3 py-3 rounded-lg text-base font-medium ${isDarkMode ? 'text-[#EDEDED]/80 hover:bg-[#444444]/30' : 'text-[#444444] hover:bg-[#EDEDED]'}`}
               >
                 {item}
