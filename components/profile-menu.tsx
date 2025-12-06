@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { LayoutDashboard, User, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, User, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 
@@ -173,27 +173,7 @@ export default function ProfileMenu({ user, role, onClose, onSignOut }: ProfileM
             </div>
           </button>
 
-          {/* Ajustes */}
-          <button
-            className="group relative flex items-center w-[220px] h-[50px] rounded-full transition-all duration-200"
-            style={{ backgroundColor: colors.buttonBg }}
-          >
-            <style jsx>{`
-               .group:hover { background-color: ${colors.buttonHoverBg} !important; }
-             `}</style>
 
-            <div className="relative z-10 flex items-center w-full px-5">
-              <div className="transition-colors">
-                <Settings size={18} style={{ color: isDarkMode ? '#FFF' : '#171717' }} className="group-hover:text-[#DC143C] transition-colors" />
-              </div>
-              <span
-                className="ml-5 font-medium text-sm transition-colors group-hover:text-[#DC143C]"
-                style={{ color: isDarkMode ? '#DDD' : '#333' }}
-              >
-                Ajustes
-              </span>
-            </div>
-          </button>
         </div>
 
         {/* 3. Logout Button */}

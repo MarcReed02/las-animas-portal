@@ -626,7 +626,7 @@ export default function AdminNoticias() {
                   </div>
                 </div>
 
-                {(status === 'Programado' || status === 'Publicado') && (
+                {status === 'Programado' && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-200">
                     <label className={`block text-xs font-bold uppercase tracking-wider ${theme.textSecondary} mb-2`}>Fecha de Publicación</label>
                     <input

@@ -21,6 +21,18 @@ export async function GET(req: NextRequest) {
 
   const adminClient = createAdminClient(supabaseUrl, serviceKey);
 
+  // Fetch User Role and Profile
+  const { data: userProfile, error: profileError } = await adminClient
+    .from("usuarios")
+    .select("rol, nombres, apellidos, correo")
+    .eq("id", auth.user.id)
+    .single();
+
+  if (profileError) {
+    console.error("[api/user/business-status] error fetching profile:", profileError);
+  }
+
+  // Fetch Business Status
   const { data: businessData, error } = await adminClient
     .from("anuncio_solicitudes")
     .select("estado, titulo")
@@ -33,5 +45,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(businessData || { estado: null, titulo: null });
+  return NextResponse.json({
+    ...(businessData || { estado: null, titulo: null }),
+    rol: userProfile?.rol || "neighbor",
+    nombres: userProfile?.nombres,
+    apellidos: userProfile?.apellidos,
+    correo: userProfile?.correo
+  });
 }

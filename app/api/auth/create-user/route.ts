@@ -85,41 +85,119 @@ export async function POST(request: NextRequest) {
       longitud_password: solicitud.password_hash?.length,
     });
 
-    const { data: existingUserData, error: checkError } = await getAuthUserByEmail({
-      adminClient,
-      email: solicitud.correo,
-      supabaseUrl,
-      serviceKey,
-    });
-    let existingUser = existingUserData?.user ?? null;
-    console.log("[admin] VERIFICACION USUARIO EXISTENTE:", {
-      email: solicitud.correo,
-      usuario_existe: Boolean(existingUser),
-      detalles_existente: existingUser ? { id: existingUser.id, email: existingUser.email } : null,
-      error_verificacion: checkError?.message || null,
-    });
+    // 1. Buscamos si ya existe alguien con este RUT en la tabla usuarios (identidad fuerte)
+    const { data: profileByRut } = await adminClient
+      .from("usuarios")
+      .select("id, correo")
+      .eq("rut", solicitud.rut)
+      .single();
 
-    if (existingUser && existingUser.email?.toLowerCase() !== solicitud.correo.toLowerCase()) {
-      console.warn("[admin] CONFLICTO DE EMAIL - USUARIO EN AUTH NO COINCIDE", {
-        emailSolicitado: solicitud.correo,
-        emailExistente: existingUser.email,
-        idExistente: existingUser.id,
-      });
-      const { error: deleteError } = await adminClient.auth.admin.deleteUser(existingUser.id);
-      if (deleteError) {
-        console.error("[admin] no se pudo eliminar usuario conflictivo", deleteError);
-        return NextResponse.json(
-          { error: deleteError.message || "No se pudo eliminar usuario conflictivo" },
-          { status: 400 },
-        );
-      }
-      console.log("[admin] ✅ USUARIO CONFLICTIVO ELIMINADO");
-      existingUser = null;
-    }
-
-    let userId = existingUser?.id ?? null;
+    let userId = profileByRut?.id ?? null;
+    let existingUser: any = null;
 
     if (userId) {
+      console.log(`[admin] RUT ${solicitud.rut} ya existe en usuarios (ID: ${userId}). Reutilizando identidad.`);
+
+      // SAFEGUARD: Check if the existing user is an admin
+      const { data: targetProfile } = await adminClient
+        .from("usuarios")
+        .select("rol")
+        .eq("id", userId)
+        .single();
+
+      if (targetProfile?.rol === "admin") {
+        console.error(`[admin] INTENTO DE SOBREESCRIBIR UNA CUENTA DE ADMIN (ID: ${userId}). ABORTANDO.`);
+        return NextResponse.json(
+          { error: "Conflicto: El RUT pertenece a un administrador existente. No se puede sobrescribir." },
+          { status: 409 }
+        );
+      }
+
+      // Verificamos si existe el usuario en Auth con este ID
+      const { data: authUser, error: authError } = await adminClient.auth.admin.getUserById(userId);
+
+      if (authUser && authUser.user) {
+        existingUser = authUser.user;
+        // Si el correo es diferente, intentamos actualizarlo
+        if (existingUser.email?.toLowerCase() !== solicitud.correo.toLowerCase()) {
+          console.log(`[admin] Actualizando correo de usuario existente: ${existingUser.email} -> ${solicitud.correo}`);
+          const { error: updateEmailError } = await adminClient.auth.admin.updateUserById(userId, {
+            email: solicitud.correo,
+            user_metadata: metadataPayload
+          });
+          if (updateEmailError) {
+            console.warn("[admin] No se pudo actualizar el correo (posiblemente en uso):", updateEmailError);
+            // Opcional: Si el correo está en uso por OTRO usuario, decidir si eliminar ese otro o fallar.
+            // Por ahora, lanzamos error para manual intervention si falla cambio email
+            if (updateEmailError.message.includes("already registered")) {
+              // Intento agresivo: Borrar el usuario que ocupa el correo email B (si no es el mismo ID)
+              const { data: userWithEmail } = await getAuthUserByEmail({ adminClient, email: solicitud.correo, supabaseUrl, serviceKey });
+              if (userWithEmail?.user && userWithEmail.user.id !== userId) {
+                console.warn(`[admin] Eliminando usuario fantasma ${userWithEmail.user.id} que ocupa el correo ${solicitud.correo}`);
+                await adminClient.auth.admin.deleteUser(userWithEmail.user.id);
+                // Reintentar update
+                const { error: retryError } = await adminClient.auth.admin.updateUserById(userId, { email: solicitud.correo });
+                if (retryError) throw retryError;
+              }
+            } else {
+              throw updateEmailError;
+            }
+          }
+        }
+      } else {
+        console.warn(`[admin] Perfil existe (ID ${userId}) pero Usuario Auth no se encontró. IGNORANDO perfil existente para evitar conflictos y creando uno nuevo.`);
+        // NO BORRAMOS el perfil existente para evitar borrar al admin por error si hay desincronización.
+        // Simplemente procedemos como si no existiera (userId = null) para que cree uno nuevo.
+        // Si el RUT es unique en la DB, fallará mas adelante, lo cual es preferible a borrar datos.
+        userId = null;
+        existingUser = null;
+      }
+    }
+
+    // 2. Si no encontramos por RUT, buscamos por Email (Logic Original)
+    if (!userId) {
+      const { data: existingUserData, error: checkError } = await getAuthUserByEmail({
+        adminClient,
+        email: solicitud.correo,
+        supabaseUrl,
+        serviceKey,
+      });
+      existingUser = existingUserData?.user ?? null;
+      console.log("[admin] VERIFICACION POR EMAIL:", {
+        email: solicitud.correo,
+        usuario_existe: Boolean(existingUser),
+        id: existingUser?.id
+      });
+
+      // Si existe usuario por email pero NO por RUT (porque userId era null), 
+      // podría ser que el usuario Auth existe pero no tiene perfil en 'usuarios' todavía 
+      // O tiene perfil con OTRO rut (lo cual sería conflicto si el RUT viene en solitud).
+
+      // Sin embargo, si llegamos aquí, NO hay perfil con ese RUT. 
+      // Así que es seguro usar este Auth User.
+
+      if (existingUser) {
+        userId = existingUser.id;
+      }
+    }
+
+    if (userId) {
+      // GLOBAL SAFEGUARD: Check if the existing user is an admin
+      // This protects against both RUT and Email collisions
+      const { data: targetProfile } = await adminClient
+        .from("usuarios")
+        .select("rol")
+        .eq("id", userId)
+        .single();
+
+      if (targetProfile?.rol === "admin") {
+        console.error(`[admin] INTENTO DE SOBREESCRIBIR UNA CUENTA DE ADMIN (ID: ${userId}). ABORTANDO.`);
+        return NextResponse.json(
+          { error: "Conflicto: La cuenta destino es de un administrador. No se puede sobrescribir." },
+          { status: 409 }
+        );
+      }
+
       console.log("[admin] USUARIO YA EXISTE - USANDO USUARIO EXISTENTE");
       const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
         user_metadata: metadataPayload,
@@ -257,10 +335,16 @@ async function getAuthUserByEmail({
     }
 
     const raw = await response.json();
-    const user =
-      Array.isArray(raw?.users) && raw.users.length > 0
-        ? raw.users[0]
-        : raw?.user || null;
+
+    // API returns a list of users, possibly ignoring the email filter.
+    // We MUST filter manually to be sure.
+    let user = null;
+    if (Array.isArray(raw?.users)) {
+      user = raw.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase()) || null;
+    } else if (raw?.user && raw.user.email?.toLowerCase() === email.toLowerCase()) {
+      // Fallback for some API versions that return single object
+      user = raw.user;
+    }
 
     return { data: user ? { user } : null, error: null };
   } catch (error: any) {

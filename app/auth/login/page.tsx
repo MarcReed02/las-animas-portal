@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   User,
 
@@ -60,6 +60,13 @@ export default function Page() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const supabase = createClient();
 
+  // Debug log for state changes
+  useEffect(() => {
+    console.log("DEBUG: Form State Updated:", {
+      firstName, lastName, rut, phone, address, email, termsAccepted, file: file?.name
+    });
+  }, [firstName, lastName, rut, phone, address, email, termsAccepted, file]);
+
   const passwordCheck: PasswordCheck = useMemo(() => evaluatePassword(password), [password]);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -72,6 +79,7 @@ export default function Page() {
     } else if (e.type === "drop") {
       setDragActive(false);
       if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        console.log("DEBUG: File dropped:", e.dataTransfer.files[0].name);
         handleUpload(e.dataTransfer.files[0]);
       }
     }
@@ -79,6 +87,7 @@ export default function Page() {
 
   const handleUpload = (selected: File | null) => {
     if (!selected) return;
+    console.log("DEBUG: File selected:", selected.name);
     setFile(selected);
     setProgress(20);
     setTimeout(() => setProgress(70), 400);
@@ -87,6 +96,8 @@ export default function Page() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("DEBUG: onSubmit triggered");
+
     const validation = validateForm({
       firstName,
       lastName,
@@ -100,12 +111,19 @@ export default function Page() {
       passwordCheck,
       termsAccepted,
     });
+
+    console.log("DEBUG: Validation result:", validation);
     setErrors(validation);
-    if (Object.keys(validation).length > 0) return;
+
+    if (Object.keys(validation).length > 0) {
+      console.warn("DEBUG: Validation failed", validation);
+      return;
+    }
 
     setLoading(true);
     setStatus(null);
     try {
+      console.log("DEBUG: Proceeding with submission...");
       const normalizedFirstName = finalizeName(firstName);
       const normalizedLastName = finalizeName(lastName);
       const normalizedRut = normalizeRut(rut);
@@ -115,16 +133,25 @@ export default function Page() {
       const nationalNumber = phone.replace(/\D/g, "");
       const e164Phone = `${PHONE_CODE}${nationalNumber}`;
 
+      console.log("DEBUG: Normalized Data:", {
+        normalizedFirstName, normalizedLastName, normalizedRut, normalizedEmail, e164Phone
+      });
+
       let documentoUrl: string | null = null;
       if (file) {
+        console.log("DEBUG: Uploading file...");
         const uniqueId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
           ? crypto.randomUUID()
           : Date.now().toString();
         const path = `solicitudes/${uniqueId}-${file.name}`;
         const { error: uploadError } = await supabase.storage.from("documentos").upload(path, file);
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("DEBUG: Upload error:", uploadError);
+          throw uploadError;
+        }
         const { data } = supabase.storage.from("documentos").getPublicUrl(path);
         documentoUrl = data.publicUrl;
+        console.log("DEBUG: File uploaded, URL:", documentoUrl);
         setProgress(100);
       }
 
@@ -141,26 +168,45 @@ export default function Page() {
 
       };
 
+      console.log("DEBUG: Inserting payload:", payload);
+
       const { error: insertError } = await supabase.from("solicitudes_registro").insert({ ...payload });
 
       if (insertError) {
+        console.error("DEBUG: Insert error FULL:", insertError);
+        console.error("DEBUG: Insert error details:", {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint
+        });
+
         if (insertError.code === "23505") {
-          setErrors((prev) => ({
-            ...prev,
-            email: "Ya existe una solicitud con este correo.",
-          }));
+          const msg = insertError.message || "";
+          if (msg.includes("rut")) {
+            setErrors((prev) => ({
+              ...prev,
+              rut: "Este RUT ya tiene una solicitud o cuenta activa.",
+            }));
+          } else {
+            setErrors((prev) => ({
+              ...prev,
+              email: "Ya existe una solicitud con este correo.",
+            }));
+          }
           return;
         }
         throw insertError;
       }
 
+      console.log("DEBUG: Submission successful");
       setStatus("ok");
       // Reset form
       setFirstName(""); setLastName(""); setRut(""); setPhone("");
       setAddress(""); setEmail(""); setPassword("");
       setConfirmPassword(""); setFile(null); setProgress(null); setTermsAccepted(false);
     } catch (err) {
-      console.error(err);
+      console.error("DEBUG: Exception caught:", err);
       setStatus("err");
     } finally {
       setLoading(false);
@@ -264,7 +310,11 @@ export default function Page() {
                       <input
                         type="text"
                         value={rut}
-                        onChange={(e) => setRut(formatRutInput(e.target.value))}
+                        onChange={(e) => {
+                          const val = formatRutInput(e.target.value);
+                          console.log("DEBUG: RUT Changed. Input:", e.target.value, "Formatted:", val);
+                          setRut(val);
+                        }}
                         maxLength={12}
                         className={`w-full bg-[#f5f5f5] dark:bg-[#1f1f1f] border-b-2 px-4 py-3 text-sm text-[#171717] dark:text-white focus:outline-none focus:bg-[#e5e5e5] dark:focus:bg-[#252525] transition-all rounded-t-md ${errors.rut ? 'border-red-500 pr-10' : 'border-[#d4d4d4] dark:border-[#444444] focus:border-[#DA0037]'}`}
                         placeholder="12.345.678-9"
@@ -557,10 +607,15 @@ function validateForm({
   }
 
   const normalizedRut = normalizeRut(rut);
+  console.log("DEBUG: Validation - Normalizing RUT:", rut, "->", normalizedRut);
+
   if (!normalizedRut) {
     errors.rut = "El RUT es obligatorio.";
   } else if (!validateRut(normalizedRut)) {
+    console.warn("DEBUG: Validation - RUT Invalid:", normalizedRut);
     errors.rut = "El RUT ingresado no es válido.";
+  } else {
+    console.log("DEBUG: Validation - RUT Valid:", normalizedRut);
   }
 
   const digits = phone.replace(/\D/g, "");

@@ -18,9 +18,13 @@ export default async function DashboardPage() {
   // Check for admin role first
   const { data: profile } = await adminClient
     .from("usuarios")
-    .select("rol")
+    .select("rol, estado")
     .eq("id", user.id)
     .single();
+
+  if (profile?.estado === "suspendido") {
+    redirect("/suspended");
+  }
 
   if (profile?.rol === "admin") {
     redirect("/admin");

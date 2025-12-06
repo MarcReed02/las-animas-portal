@@ -144,8 +144,10 @@ const TimePicker = ({ value, onChange, disabled, label }: any) => {
         <Clock size={20} className={`transition-colors ${isOpen ? 'text-[#DA0037]' : 'text-gray-400 dark:text-[#52525b]'}`} />
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-xl shadow-2xl z-50 flex h-64 overflow-hidden animate-fade-in">
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'}`}
+      >
+        <div className="overflow-hidden min-h-0 bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-xl flex h-64 ring-1 ring-gray-200 dark:ring-white/10 shadow-inner">
           {/* Hours */}
           <div className="flex-1 overflow-y-auto border-r border-gray-200 dark:border-[#27272a] scrollbar-hide">
             <div className="sticky top-0 bg-white dark:bg-[#18181b] text-[10px] text-center py-2 text-gray-500 dark:text-[#71717a] font-bold uppercase border-b border-gray-200 dark:border-[#27272a] z-10">Hora</div>
@@ -174,7 +176,7 @@ const TimePicker = ({ value, onChange, disabled, label }: any) => {
             ))}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

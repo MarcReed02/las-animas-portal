@@ -64,22 +64,11 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
     setMounted(true);
     const fetchRoleAndBusiness = async () => {
       if (currentUser?.id) {
-        // Fetch Role
-        const { data: userData } = await supabase
-          .from('usuarios')
-          .select('rol')
-          .eq('id', currentUser.id)
-          .single();
-        if (userData) {
-          setUserRole(userData.rol);
-        }
-
-        // Fetch Business Status via API to bypass RLS issues
+        // Fetch all user data (Role + Business) via API to bypass RLS
         try {
           const res = await fetch('/api/user/business-status');
 
           if (res.status === 401) {
-            // Session is invalid/expired on server. Force refresh/logout.
             console.warn("Session expired. Refreshing...");
             await supabase.auth.signOut();
             window.location.reload();
@@ -87,14 +76,21 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
           }
 
           if (res.ok) {
-            const businessData = await res.json();
-            if (businessData && businessData.estado) {
-              setBusinessStatus(businessData.estado);
-              setBusinessName(businessData.titulo);
+            const data = await res.json();
+
+            // Set Role
+            if (data.rol) {
+              setUserRole(data.rol);
+            }
+
+            // Set Business Status
+            if (data.estado) {
+              setBusinessStatus(data.estado);
+              setBusinessName(data.titulo);
             }
           }
         } catch (error) {
-          console.error("Error fetching business status:", error);
+          console.error("Error fetching user data:", error);
         }
       }
     };
@@ -168,7 +164,7 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
                   {['Inicio', 'Comercios', 'Nosotros'].map((item) => (
                     <Link
                       key={item}
-                      href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+                      href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : item === 'Nosotros' ? '/nosotros' : '#'}
                       className={`text-sm font-medium transition-colors duration-200 hover:text-[#DA0037] ${textSecondary}`}
                     >
                       {item}
@@ -295,7 +291,7 @@ const NavbarLogged = ({ session, user: propUser, progress }: NavbarLoggedProps) 
             {['Inicio', 'Comercios', 'Nosotros'].map((item) => (
               <Link
                 key={item}
-                href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+                href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : item === 'Nosotros' ? '/nosotros' : '#'}
                 className={`block px-3 py-3 rounded-lg text-base font-medium ${isDarkMode ? 'text-[#EDEDED]/80 hover:bg-[#444444]/30' : 'text-[#444444] hover:bg-[#EDEDED]'}`}
               >
                 {item}

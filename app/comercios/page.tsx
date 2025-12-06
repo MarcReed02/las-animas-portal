@@ -2,6 +2,8 @@ import ComerciosClient from "@/components/comercios-client";
 import NavbarNew from "@/components/navbar-new";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+
 export default async function ComerciosPage() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -18,13 +20,17 @@ export default async function ComerciosPage() {
   const adminClient = createAdminClient(supabaseUrl, serviceKey);
 
   // Fetch listings
-  const { data } = await adminClient
+  const { data, error } = await adminClient
     .from("anuncio_solicitudes")
     .select(
       "id,titulo,descripcion,categoria_principal,subcategoria,direccion,horario,mostrar_telefono,telefono_snapshot,instagram,facebook,whatsapp,tiktok,contacto_twitter,contacto_web,anuncio_solicitud_imagenes(url,orden)",
     )
     .eq("estado", "approved")
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[ComerciosPage] Error fetching listings:", JSON.stringify(error, null, 2));
+  }
 
   const listings = (data as any[] | null) || [];
 

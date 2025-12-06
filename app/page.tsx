@@ -10,6 +10,7 @@ export default async function Page() {
   const { data: news } = await supabase
     .from('news')
     .select('*')
+    .eq('status', 'Publicado')
     .order('published_at', { ascending: false })
     .limit(3);
 

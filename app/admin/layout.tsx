@@ -40,7 +40,7 @@ const themeConfig = {
 const nav = [
   { href: "/admin", label: "Solicitudes", icon: LayoutDashboard },
   { href: "/admin/noticias", label: "Noticias", icon: FileText },
-  { href: "/admin/usuarios", label: "Usuarios", icon: Users },
+  { href: "/admin/usuarios", label: "Gestión Usuarios", icon: Users },
   { href: "/admin/ajustes", label: "Ajustes", icon: Settings },
 ];
 

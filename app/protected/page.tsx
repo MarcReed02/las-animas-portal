@@ -17,6 +17,17 @@ export default async function ProtectedPage() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
   const adminClient = createAdminClient(supabaseUrl, serviceKey);
 
+  // Check user status
+  const { data: profile } = await adminClient
+    .from("usuarios")
+    .select("estado")
+    .eq("id", userData.user.id)
+    .single();
+
+  if (profile?.estado === "suspendido") {
+    redirect("/suspended");
+  }
+
   // Check if user has an approved business
   const { data: existingBusiness } = await adminClient
     .from("anuncio_solicitudes")

@@ -29,6 +29,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
+import NavbarLogged from './navbar-logged';
 
 // Icono TikTok personalizado
 const TikTokIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
@@ -120,7 +121,7 @@ const TimePicker = ({ value, onChange, disabled, label }: any) => {
   const periods = ['AM', 'PM'];
 
   return (
-    <div className="relative group/time" ref={containerRef}>
+    <div className={`relative group/time`}>
       <label className="text-[10px] font-bold text-[#71717a] uppercase tracking-wider mb-3 block pl-2 group-hover/time:text-[#DA0037] transition-colors">{label}</label>
       <button
         type="button"
@@ -137,8 +138,10 @@ const TimePicker = ({ value, onChange, disabled, label }: any) => {
         <Clock size={20} className={`transition-colors ${isOpen ? 'text-[#DA0037]' : 'text-[#52525b]'}`} />
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-2 bg-[#18181b] border border-[#27272a] rounded-xl shadow-2xl z-50 flex h-64 overflow-hidden animate-fade-in">
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'}`}
+      >
+        <div className="overflow-hidden min-h-0 bg-[#18181b] border border-[#27272a] rounded-xl flex h-64 ring-1 ring-white/10">
           {/* Hours */}
           <div className="flex-1 overflow-y-auto border-r border-[#27272a] scrollbar-hide">
             <div className="sticky top-0 bg-[#18181b] text-[10px] text-center py-2 text-[#71717a] font-bold uppercase border-b border-[#27272a] z-10">Hora</div>
@@ -167,8 +170,9 @@ const TimePicker = ({ value, onChange, disabled, label }: any) => {
             ))}
           </div>
         </div>
-      )}
+      </div>
     </div>
+
   );
 };
 
@@ -406,73 +410,10 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
     <div className="min-h-screen bg-[#121212] font-sans text-[#f4f4f5] flex flex-col overflow-x-hidden selection:bg-[#DA0037] selection:text-white">
 
       {/* --- GLOBAL NAVBAR --- */}
-      <nav className={`h-20 bg-[#121212]/90 backdrop-blur-md border-b border-[#27272a] flex items-center justify-between px-6 lg:px-12 z-50 shrink-0 sticky top-0 transition-all duration-700 ${mounted ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
-        <div className="flex items-center gap-12">
-          {/* LOGO */}
-          <Link href="/" className="flex flex-col leading-none select-none cursor-pointer group hover:scale-105 transition-transform duration-300">
-            <span className="font-black text-2xl text-white tracking-tighter group-hover:text-[#DA0037] transition-colors duration-300">PORTAL</span>
-            <span className="font-bold text-[10px] text-[#DA0037] tracking-[0.2em] uppercase group-hover:text-white transition-colors duration-300">ANIMAS</span>
-          </Link>
-
-          {/* CENTER LINKS */}
-          <div className="hidden lg:flex items-center gap-8">
-            {['Inicio', 'Directorio', 'Agenda', 'Proyectos', 'Nosotros'].map((item, idx) => (
-              <Link
-                key={item}
-                href={item === 'Directorio' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
-                className="text-sm font-medium text-[#a1a1aa] hover:text-white hover:bg-[#27272a] px-3 py-1.5 rounded-lg transition-all duration-300 hover:-translate-y-0.5"
-                style={{ transitionDelay: `${idx * 50}ms` }}
-              >
-                {item}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* RIGHT ACTIONS */}
-        <div className="flex items-center gap-6">
-          <button className="hidden md:flex items-center gap-2 bg-[#DA0037] hover:bg-[#b0002c] text-white px-6 py-2.5 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(218,0,55,0.2)] hover:shadow-[0_0_30px_rgba(218,0,55,0.5)] group active:scale-95 hover:-translate-y-0.5">
-            <Plus size={18} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" />
-            <span className="text-sm font-bold">Publicar</span>
-          </button>
-          <div className="h-8 w-px bg-[#27272a] hidden md:block"></div>
-          <div className="flex items-center gap-3 text-[#a1a1aa]">
-            <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} className="hover:text-white hover:bg-[#27272a] p-2 rounded-full transition-all duration-300 hover:rotate-12"><Sun size={20} /></button>
-            <button className="hover:text-white hover:bg-[#27272a] p-2 rounded-full transition-all duration-300 hover:rotate-12 relative group">
-              <Bell size={20} className="group-hover:animate-swing" />
-              <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#DA0037] rounded-full border border-[#18181b] animate-pulse"></span>
-            </button>
-
-            <div className="relative group">
-              <button className="ml-2 hover:opacity-80 transition-all duration-300 hover:scale-105 relative">
-                <div className="w-10 h-10 rounded-full bg-[#27272a] flex items-center justify-center border border-[#3f3f46] text-white group-hover:border-[#DA0037] transition-colors duration-300 shadow-lg">
-                  <User size={18} />
-                </div>
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#18181b] animate-pulse"></span>
-              </button>
-
-              {/* Dropdown Logout */}
-              <div className="absolute right-0 mt-2 w-48 bg-[#18181b] border border-[#27272a] rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
-                <div className="p-2">
-                  <div className="px-4 py-2 text-sm text-[#a1a1aa] border-b border-[#27272a] mb-2">
-                    {user.email}
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-[#27272a] rounded-lg transition-colors"
-                  >
-                    <LogOut size={16} /> Cerrar Sesión
-                  </button>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </nav>
+      <NavbarLogged user={user} />
 
       {/* --- MAIN CONTENT AREA --- */}
-      <main className="flex-1 w-full max-w-5xl mx-auto p-6 lg:p-12 space-y-16">
+      <main className="flex-1 w-full max-w-5xl mx-auto p-6 lg:p-12 pt-24 lg:pt-32 space-y-16">
 
         {/* HEADER CONTEXTUAL */}
         <div className={`flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#27272a] pb-8 transition-all duration-1000 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
@@ -608,7 +549,7 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
         </section>
 
         {/* 2. HORARIOS DE ATENCIÓN */}
-        <section className={`space-y-8 transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <section className={`space-y-8 transition-all duration-1000 delay-300 relative z-30 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="flex items-center gap-3">
             <div className="h-8 w-1 bg-[#DA0037] rounded-full shadow-[0_0_10px_#DA0037]"></div>
             <div>

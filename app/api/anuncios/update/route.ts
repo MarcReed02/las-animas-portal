@@ -35,13 +35,11 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Missing ID" }, { status: 400 });
   }
 
-  console.log("[API Update] Received update request for ID:", id);
-  console.log("[API Update] Auth user:", auth.user.id);
+  // ... inside PATCH function ...
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey) {
-    console.error("[API Update] Missing env vars");
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
@@ -56,12 +54,10 @@ export async function PATCH(req: NextRequest) {
     .single();
 
   if (fetchError || !existing) {
-    console.error("[API Update] Fetch error or not found:", fetchError);
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   if (existing.user_id !== auth.user.id) {
-    console.error("[API Update] Forbidden. Owner:", existing.user_id, "Requestor:", auth.user.id);
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -91,6 +87,10 @@ export async function PATCH(req: NextRequest) {
     console.error("[API Update] Update error:", updateError);
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
+
+  // 2. Update images
+  // ... (rest of image logic) ...
+
 
   // 2. Update images
   if (Array.isArray(imagenes)) {

@@ -116,14 +116,16 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
     const dateObj = item.published_at ? new Date(item.published_at) : new Date();
     const day = dateObj.getDate();
     const month = dateObj.toLocaleString('es-ES', { month: 'short' });
+    const time = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     return {
       id: item.id || index,
       image: item.image_url || `https://lipsum.app/random/480x320?i=${index}`,
       title: item.title,
+      description: item.excerpt || "",
       date: `${day} ${month}`,
-      time: "12:00 PM", // Placeholder
-      location: "Las Ánimas", // Placeholder
+      time: time,
+      // location: "Las Ánimas", // Placeholder
       price: "Gratis", // Placeholder
       category: "Noticia" // Placeholder
     };
@@ -287,15 +289,17 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
                         <span className={`block text-xs font-medium mb-1 ${textTertiary}`}>{item.price}</span>
                       </div>
                     </div>
-                    <h4 className={`text-lg font-bold mb-3 leading-tight group-hover:text-[#DA0037] transition-colors ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
+                    <h4 className={`text-lg font-bold mb-2 leading-tight group-hover:text-[#DA0037] transition-colors ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
                       {item.title}
                     </h4>
+                    {item.description && (
+                      <p className={`text-sm mb-4 line-clamp-3 ${textSecondary}`}>
+                        {item.description}
+                      </p>
+                    )}
                     <div className="space-y-2 mt-auto">
                       <div className={`flex items-center gap-2 text-xs ${textSecondary}`}>
                         <Clock size={14} className={accentText} /> {item.time}
-                      </div>
-                      <div className={`flex items-center gap-2 text-xs ${textSecondary}`}>
-                        <MapPin size={14} className={accentText} /> {item.location}
                       </div>
                     </div>
                   </div>

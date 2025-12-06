@@ -74,7 +74,7 @@ export default function NavbarNew() {
               {['Inicio', 'Comercios', 'Nosotros'].map((item) => (
                 <Link
                   key={item}
-                  href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+                  href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : item === 'Nosotros' ? '/nosotros' : '#'}
                   className={`text-sm font-medium transition-colors duration-200 hover:text-[#DA0037] ${textSecondary}`}
                 >
                   {item}
@@ -121,7 +121,7 @@ export default function NavbarNew() {
             {['Inicio', 'Comercios', 'Nosotros'].map((item) => (
               <Link
                 key={item}
-                href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : '#'}
+                href={item === 'Comercios' ? '/comercios' : item === 'Inicio' ? '/' : item === 'Nosotros' ? '/nosotros' : '#'}
                 className={`block px-3 py-3 rounded-lg text-base font-medium ${isDarkMode ? 'text-[#EDEDED]/80 hover:bg-[#444444]/30' : 'text-[#444444] hover:bg-[#EDEDED]'}`}
               >
                 {item}

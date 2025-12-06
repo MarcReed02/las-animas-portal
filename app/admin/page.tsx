@@ -447,7 +447,7 @@ export default function AdminDashboard() {
               }}
             >
               <Store size={16} className={`mr-2 transition-transform duration-300 ${requestType === 'commerce' ? 'scale-110' : ''}`} />
-              Comercios
+              Reg. Comercios
             </button>
             <button
               onClick={() => setRequestType('users')}
@@ -461,7 +461,7 @@ export default function AdminDashboard() {
               }}
             >
               <UserCheck size={16} className={`mr-2 transition-transform duration-300 ${requestType === 'users' ? 'scale-110' : ''}`} />
-              Usuarios
+              Reg. Usuarios
             </button>
           </div>
 
