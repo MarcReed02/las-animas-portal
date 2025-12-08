@@ -28,6 +28,7 @@ import {
   Youtube
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // --- COMPONENTE LOGO VECTORIZADO (SVG) ---
 const AnimasLogo = ({ isDarkMode }: { isDarkMode: boolean }) => (
@@ -79,6 +80,21 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [currentHeroImage, setCurrentHeroImage] = useState(0);
+
+  const router = useRouter();
+  const [homeSearchTerm, setHomeSearchTerm] = useState('');
+
+  const handleSearch = () => {
+    if (homeSearchTerm.trim()) {
+      router.push(`/comercios?q=${encodeURIComponent(homeSearchTerm.trim())}`);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -220,10 +236,16 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
               <Search className={`ml-4 ${isDarkMode ? 'text-[#444444]' : 'text-[#9ca3af]'}`} size={24} />
               <input
                 type="text"
+                value={homeSearchTerm}
+                onChange={(e) => setHomeSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="¿Qué estás buscando hoy? (ej. Restaurantes, Eventos...)"
                 className={`flex-1 bg-transparent border-none outline-none py-4 px-2 text-lg ${isDarkMode ? 'text-[#EDEDED] placeholder:text-[#444444]' : 'text-[#171717] placeholder:text-[#9ca3af]'}`}
               />
-              <button className={`px-8 py-4 rounded-lg font-bold tracking-wide ${btnPrimaryClass}`}>
+              <button
+                onClick={handleSearch}
+                className={`px-8 py-4 rounded-lg font-bold tracking-wide ${btnPrimaryClass}`}
+              >
                 BUSCAR
               </button>
             </div>

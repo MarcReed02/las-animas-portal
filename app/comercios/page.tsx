@@ -2,8 +2,6 @@ import ComerciosClient from "@/components/comercios-client";
 import NavbarNew from "@/components/navbar-new";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
-export const dynamic = "force-dynamic";
-
 export default async function ComerciosPage() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -66,7 +64,7 @@ export default async function ComerciosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#171717]">
+    <div className="min-h-screen bg-[#171717] pt-20">
       <NavbarNew />
       <ComerciosClient listings={listings} categoryGroups={categoryGroups} />
     </div>

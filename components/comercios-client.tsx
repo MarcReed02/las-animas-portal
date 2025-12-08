@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
   Search, MapPin, ArrowUpRight, Clock, Phone,
@@ -9,6 +10,7 @@ import {
   ChevronDown, Filter, X, RefreshCcw, Home, Sun, Moon
 } from 'lucide-react';
 import { slugify } from '@/lib/utils';
+
 
 // Icono X (Twitter)
 const XIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
@@ -51,11 +53,14 @@ function firstImage(listing: Listing) {
 
 const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[], categoryGroups: CategoryGroup[] }) => {
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get('q') || '';
+
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [mounted, setMounted] = useState(false);
 
   // Efecto para activar animaciones al montar
@@ -200,64 +205,7 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
         `}
       </style>
 
-      {/* --- HEADER --- */}
-      <header className={`sticky top-0 z-30 ${bgHeader} backdrop-blur-xl border-b ${borderColor} transition-all duration-300`}>
-        <div className="max-w-[1600px] mx-auto px-6 md:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            {/* Botón Menú Móvil */}
-            <button
-              className={`md:hidden ${textPrimary} hover:text-[#DA0037] transition-colors p-1`}
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Filter size={24} />}
-            </button>
 
-            {/* TÍTULO REDISEÑADO (Estilo Arquitectónico/Moderno) */}
-            <div className="flex flex-col justify-center group cursor-default select-none">
-              <span className="text-[#DA0037] text-[10px] font-bold uppercase tracking-[0.3em] leading-none mb-1.5 transition-all duration-500 group-hover:tracking-[0.5em] group-hover:text-white">
-                Directorio
-              </span>
-              <h1 className={`text-2xl md:text-3xl font-black ${textPrimary} tracking-widest uppercase leading-none group-hover:text-[#DA0037] transition-colors duration-300`}>
-                Comercios
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Barra de Búsqueda Desktop */}
-            <div className="relative group w-full max-w-sm hidden md:block">
-              <input
-                type="text"
-                placeholder="Buscar comercio..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full ${bgInput} border border-transparent focus:border-[#DA0037] ${textPrimary} py-2.5 pl-5 pr-10 text-sm rounded-full focus:outline-none transition-all duration-300 placeholder-[#999] group-hover:brightness-95 shadow-inner`}
-              />
-              <Search className="absolute right-4 top-3 text-[#999] group-focus-within:text-[#DA0037] transition-colors" size={18} />
-            </div>
-
-            {/* Botón Home */}
-            <Link
-              href="/"
-              className={`p-2 rounded-full ${bgInput} ${textSecondary} hover:text-[#DA0037] hover:brightness-95 transition-all`}
-              title="Volver al inicio"
-            >
-              <Home size={18} />
-            </Link>
-
-            {/* Botón Theme Toggle */}
-            {mounted && (
-              <button
-                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                className={`p-2 rounded-full ${bgInput} ${textSecondary} hover:text-[#DA0037] hover:brightness-95 transition-all`}
-                title="Cambiar tema"
-              >
-                {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
 
       <div className="max-w-[1600px] mx-auto w-full flex flex-1 items-start">
 
