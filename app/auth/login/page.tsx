@@ -60,6 +60,15 @@ export default function Page() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const supabase = createClient();
 
+  // Carousel logic
+  const [currentImage, setCurrentImage] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % 2); // 2 images total
+    }, 5000); // 5 seconds per image
+    return () => clearInterval(timer);
+  }, []);
+
   // Debug log for state changes
   useEffect(() => {
     console.log("DEBUG: Form State Updated:", {
@@ -220,8 +229,20 @@ export default function Page() {
       <div className="flex-1 flex flex-col lg:flex-row w-full">
         {/* --- COLUMNA IZQUIERDA: VISUAL & BRANDING --- */}
         <div className="hidden lg:flex lg:w-5/12 relative overflow-hidden bg-[#f0f0f0] dark:bg-[#0f0f0f] pt-20">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1569388330292-79cc1ec67270?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-20 dark:opacity-40 grayscale mix-blend-multiply dark:mix-blend-overlay"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-transparent to-white/20 dark:from-[#171717] dark:via-transparent dark:to-[#171717]/50"></div>
+          {/* Carousel Background */}
+          {["/images/auth/login-bg-1.jpg", "/images/auth/login-bg-2.png"].map((img, idx) => (
+            <div
+              key={img}
+              className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out ${idx === currentImage ? "opacity-100" : "opacity-0"
+                }`}
+              style={{ backgroundImage: `url('${img}')` }}
+            >
+              {/* Overlay layers to match original design style */}
+              <div className="absolute inset-0 bg-[#000000]/20 dark:bg-[#000000]/40 mix-blend-multiply dark:mix-blend-overlay"></div>
+            </div>
+          ))}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-transparent to-white/20 dark:from-[#171717] dark:via-transparent dark:to-[#171717]/50 pointer-events-none"></div>
 
           <div className="relative z-10 w-full h-full flex flex-col justify-between p-12">
             <div className="mt-8">
@@ -233,20 +254,11 @@ export default function Page() {
               <h1 className="text-4xl font-bold text-[#171717] dark:text-white mb-4 leading-tight">
                 Impulsa tu negocio en el corazón de Valdivia.
               </h1>
-              <p className="text-[#444444] dark:text-[#EDEDED]/60 text-lg max-w-md">
+              <p className="text-[#444444] dark:text-[#EDEDED]/90 text-lg max-w-md font-medium drop-shadow-sm">
                 Únete a la red oficial de comercio, aumenta tu visibilidad y conecta con miles de vecinos y turistas cada día.
               </p>
 
-              <div className="mt-8 flex gap-8 border-t border-[#d4d4d4] dark:border-[#444444] pt-8">
-                <div>
-                  <span className="block text-2xl font-bold text-[#171717] dark:text-white">+120</span>
-                  <span className="text-xs uppercase tracking-wider text-[#666666] dark:text-[#EDEDED]/50">Locales</span>
-                </div>
-                <div>
-                  <span className="block text-2xl font-bold text-[#171717] dark:text-white">5k</span>
-                  <span className="text-xs uppercase tracking-wider text-[#666666] dark:text-[#EDEDED]/50">Visitas/mes</span>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>

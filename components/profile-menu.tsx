@@ -78,7 +78,7 @@ export default function ProfileMenu({ user, role, onClose, onSignOut }: ProfileM
         className="absolute right-0 top-16 z-50 flex flex-col items-center animate-in fade-in zoom-in-95 duration-200"
         style={{
           width: '290px',
-          height: '410px',
+          height: '340px',
           backgroundColor: colors.bg,
           borderRadius: '30px',
           boxShadow: colors.shadow,
@@ -152,26 +152,7 @@ export default function ProfileMenu({ user, role, onClose, onSignOut }: ProfileM
           )}
 
           {/* Editar Perfil */}
-          <button
-            className="group relative flex items-center w-[220px] h-[50px] rounded-full transition-all duration-200"
-            style={{ backgroundColor: colors.buttonBg }}
-          >
-            <style jsx>{`
-               .group:hover { background-color: ${colors.buttonHoverBg} !important; }
-             `}</style>
 
-            <div className="relative z-10 flex items-center w-full px-5">
-              <div className="transition-colors">
-                <User size={18} style={{ color: isDarkMode ? '#FFF' : '#171717' }} className="group-hover:text-[#DC143C] transition-colors" />
-              </div>
-              <span
-                className="ml-5 font-medium text-sm transition-colors group-hover:text-[#DC143C]"
-                style={{ color: isDarkMode ? '#DDD' : '#333' }}
-              >
-                Editar Perfil
-              </span>
-            </div>
-          </button>
 
 
         </div>

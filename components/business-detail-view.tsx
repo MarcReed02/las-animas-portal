@@ -34,6 +34,8 @@ import {
   LogIn,
   Pencil
 } from 'lucide-react';
+import { FaTiktok } from "react-icons/fa";
+
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -44,9 +46,7 @@ import BusinessDetailNavbar from './business-detail-navbar';
 
 // Icono TikTok
 const TikTokIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-  </svg>
+  <FaTiktok size={size} className={className} />
 );
 
 // Icono X (Twitter)

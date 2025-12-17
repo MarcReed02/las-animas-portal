@@ -18,18 +18,25 @@ const LasAnimasAbout = () => {
 
   const isDarkMode = resolvedTheme === 'dark';
 
-  // --- VARIABLES DE ESTILO ---
-  const bgClass = isDarkMode ? 'bg-[#171717] text-[#EDEDED]' : 'bg-gray-50 text-gray-900';
-  const sectionBg = isDarkMode ? 'bg-[#1a1a1a]' : 'bg-white';
-  const cardBg = isDarkMode ? 'bg-[#222222] border-[#444444]' : 'bg-white border-gray-200 shadow-lg';
-  const cardBorderHover = isDarkMode ? 'hover:border-[#DA0037]' : 'hover:border-[#DA0037]';
+  // --- Theme Variables ---
+  // Using user's specific dark colors and mapping to clean light mode alternatives
+  const bgMain = isDarkMode ? 'bg-[#171717]' : 'bg-gray-50';
+  const textMain = isDarkMode ? 'text-[#EDEDED]' : 'text-gray-900';
   const textMuted = isDarkMode ? 'text-gray-400' : 'text-gray-600';
   const textSubtle = isDarkMode ? 'text-gray-500' : 'text-gray-500';
-  const formInputBg = isDarkMode ? 'bg-[#333333] border-[#444444] text-white' : 'bg-gray-50 border-gray-200 text-gray-900';
-  const iconContainerBg = isDarkMode ? 'bg-[#171717] border-[#333]' : 'bg-gray-100 border-gray-200';
+
+  const sectionBg = isDarkMode ? 'bg-[#1a1a1a]' : 'bg-white';
+  const cardBg = isDarkMode ? 'bg-[#222222]' : 'bg-white shadow-xl';
+  const cardBorder = isDarkMode ? 'border-[#444444]' : 'border-gray-200';
+
+  const formBg = isDarkMode ? 'bg-[#171717]' : 'bg-gray-50';
+  const inputBg = isDarkMode ? 'bg-[#333333]' : 'bg-white';
+
+  const iconBg = isDarkMode ? 'bg-[#171717]' : 'bg-gray-100';
+  const iconBorder = isDarkMode ? 'border-[#333]' : 'border-gray-200';
 
   return (
-    <div className={`min-h-screen font-sans selection:bg-[#DA0037] selection:text-white transition-colors duration-500 ${bgClass}`}>
+    <div className={`min-h-screen font-sans selection:bg-[#DA0037] selection:text-white transition-colors duration-500 ${bgMain} ${textMain}`}>
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-40 pb-32">
@@ -63,15 +70,15 @@ const LasAnimasAbout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Misión */}
-            <div className={`p-8 md:p-12 rounded-2xl border transition-all group relative overflow-hidden ${cardBg} ${cardBorderHover}`}>
+            <div className={`${cardBg} ${cardBorder} p-8 md:p-12 rounded-2xl border hover:border-[#DA0037] transition-all group relative overflow-hidden`}>
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Target size={120} className={isDarkMode ? 'text-white' : 'text-black'} />
+                <Target size={120} />
               </div>
               <div className="flex items-center gap-4 mb-6">
-                <div className={`p-3 rounded-lg text-[#DA0037] border ${iconContainerBg}`}>
+                <div className={`p-3 rounded-lg text-[#DA0037] border ${iconBg} ${iconBorder}`}>
                   <Target className="w-8 h-8" />
                 </div>
-                <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Nuestra Misión</h2>
+                <h2 className="text-3xl font-bold">Nuestra Misión</h2>
               </div>
               <p className={`text-lg leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 Centralizar y visibilizar la oferta comercial y turística de Las Ánimas en una plataforma unificada, facilitando el acceso a la información y apoyando la transformación digital de nuestros emprendedores locales para fortalecer la economía del barrio.
@@ -79,15 +86,15 @@ const LasAnimasAbout = () => {
             </div>
 
             {/* Visión */}
-            <div className={`p-8 md:p-12 rounded-2xl border transition-all group relative overflow-hidden ${cardBg} ${cardBorderHover}`}>
+            <div className={`${cardBg} ${cardBorder} p-8 md:p-12 rounded-2xl border hover:border-[#DA0037] transition-all group relative overflow-hidden`}>
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Eye size={120} className={isDarkMode ? 'text-white' : 'text-black'} />
+                <Eye size={120} />
               </div>
               <div className="flex items-center gap-4 mb-6">
-                <div className={`p-3 rounded-lg text-[#DA0037] border ${iconContainerBg}`}>
+                <div className={`p-3 rounded-lg text-[#DA0037] border ${iconBg} ${iconBorder}`}>
                   <Eye className="w-8 h-8" />
                 </div>
-                <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Nuestra Visión</h2>
+                <h2 className="text-3xl font-bold">Nuestra Visión</h2>
               </div>
               <p className={`text-lg leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 Convertirnos en el referente digital de la vida de barrio en Valdivia, posicionando a Las Ánimas como un destino turístico y comercial consolidado, donde la tecnología potencia nuestra historia, identidad y sentido de comunidad.
@@ -98,10 +105,10 @@ const LasAnimasAbout = () => {
       </section>
 
       {/* Sección de Contacto para Colaboradores */}
-      <section className={`py-20 transition-colors duration-500 ${bgClass}`}>
+      <section className={`py-20 transition-colors duration-500 ${bgMain}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Contenedor principal */}
-          <div className={`rounded-2xl p-8 md:p-16 relative overflow-hidden border ${cardBg}`}>
+          <div className={`${cardBg} ${cardBorder} border rounded-2xl p-8 md:p-16 relative overflow-hidden shadow-2xl`}>
             {/* Decoración de fondo */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-[#DA0037] opacity-5 blur-[100px] rounded-full pointer-events-none" />
 
@@ -117,26 +124,26 @@ const LasAnimasAbout = () => {
 
                 <div className="space-y-8">
                   <div className="flex gap-4">
-                    <div className={`mt-1 p-3 rounded-lg text-[#DA0037] h-fit border ${iconContainerBg}`}>
+                    <div className={`mt-1 p-3 rounded-lg text-[#DA0037] h-fit border ${iconBg} ${iconBorder}`}>
                       <Building2 className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Instituciones y Empresas</h4>
+                      <h4 className="font-bold text-lg">Instituciones y Empresas</h4>
                       <p className={textMuted}>¿Deseas patrocinar una sección o integrar servicios municipales? Hablemos de integración.</p>
                     </div>
                   </div>
 
                   <div className="flex gap-4">
-                    <div className={`mt-1 p-3 rounded-lg text-[#DA0037] h-fit border ${iconContainerBg}`}>
+                    <div className={`mt-1 p-3 rounded-lg text-[#DA0037] h-fit border ${iconBg} ${iconBorder}`}>
                       <Users className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Organizaciones Sociales</h4>
+                      <h4 className="font-bold text-lg">Organizaciones Sociales</h4>
                       <p className={textMuted}>Si representas a una junta de vecinos o agrupación cultural, ayúdanos a difundir eventos.</p>
                     </div>
                   </div>
 
-                  <div className={`pt-4 border-t ${isDarkMode ? 'border-[#444444]' : 'border-gray-200'}`}>
+                  <div className={`pt-4 border-t ${cardBorder}`}>
                     <div className={`flex items-center gap-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <Mail className="w-5 h-5 text-[#DA0037]" />
                       <span>contacto@lasanimasportal.cl</span>
@@ -146,26 +153,26 @@ const LasAnimasAbout = () => {
               </div>
 
               {/* Formulario de Colaboración */}
-              <div className={`p-8 rounded-xl border shadow-lg ${isDarkMode ? 'bg-[#171717] border-[#444444]' : 'bg-white border-gray-100'}`}>
-                <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Formulario de Contacto</h3>
+              <div className={`${formBg} border ${cardBorder} p-8 rounded-xl shadow-lg`}>
+                <h3 className="text-xl font-bold mb-6">Formulario de Contacto</h3>
                 <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className={`block text-sm font-medium mb-1 ${textMuted}`}>Nombre</label>
-                      <input type="text" className={`w-full rounded-lg p-3 focus:ring-2 focus:ring-[#DA0037] focus:border-transparent outline-none transition-all placeholder-gray-500 ${formInputBg}`} placeholder="Tu nombre" />
+                      <input type="text" className={`w-full ${inputBg} border ${cardBorder} rounded-lg p-3 ${textMain} focus:ring-2 focus:ring-[#DA0037] focus:border-transparent outline-none placeholder-gray-500 transition-all`} placeholder="Tu nombre" />
                     </div>
                     <div>
                       <label className={`block text-sm font-medium mb-1 ${textMuted}`}>Organización</label>
-                      <input type="text" className={`w-full rounded-lg p-3 focus:ring-2 focus:ring-[#DA0037] focus:border-transparent outline-none transition-all placeholder-gray-500 ${formInputBg}`} placeholder="Empresa / JJVV" />
+                      <input type="text" className={`w-full ${inputBg} border ${cardBorder} rounded-lg p-3 ${textMain} focus:ring-2 focus:ring-[#DA0037] focus:border-transparent outline-none placeholder-gray-500 transition-all`} placeholder="Empresa / JJVV" />
                     </div>
                   </div>
                   <div>
                     <label className={`block text-sm font-medium mb-1 ${textMuted}`}>Correo Electrónico</label>
-                    <input type="email" className={`w-full rounded-lg p-3 focus:ring-2 focus:ring-[#DA0037] focus:border-transparent outline-none transition-all placeholder-gray-500 ${formInputBg}`} placeholder="correo@ejemplo.com" />
+                    <input type="email" className={`w-full ${inputBg} border ${cardBorder} rounded-lg p-3 ${textMain} focus:ring-2 focus:ring-[#DA0037] focus:border-transparent outline-none placeholder-gray-500 transition-all`} placeholder="correo@ejemplo.com" />
                   </div>
                   <div>
                     <label className={`block text-sm font-medium mb-1 ${textMuted}`}>Propuesta o Mensaje</label>
-                    <textarea rows={4} className={`w-full rounded-lg p-3 focus:ring-2 focus:ring-[#DA0037] focus:border-transparent outline-none transition-all placeholder-gray-500 ${formInputBg}`} placeholder="Cuéntanos cómo te gustaría colaborar con el portal..."></textarea>
+                    <textarea rows={4} className={`w-full ${inputBg} border ${cardBorder} rounded-lg p-3 ${textMain} focus:ring-2 focus:ring-[#DA0037] focus:border-transparent outline-none placeholder-gray-500 transition-all`} placeholder="Cuéntanos cómo te gustaría colaborar con el portal..."></textarea>
                   </div>
                   <button type="submit" className="w-full bg-[#DA0037] hover:bg-[#b0002c] text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#DA0037]/20">
                     <Handshake className="w-5 h-5" />

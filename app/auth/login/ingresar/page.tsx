@@ -27,6 +27,15 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  // Carousel logic
+  const [currentImage, setCurrentImage] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % 2); // 2 images total
+    }, 5000); // 5 seconds per image
+    return () => clearInterval(timer);
+  }, []);
+
   const { theme: nextTheme, setTheme, resolvedTheme } = useTheme();
   const router = useRouter();
   const supabase = createClient();
@@ -177,10 +186,18 @@ export default function LoginPage() {
 
       {/* --- COLUMNA IZQUIERDA: IMAGEN DE MARCA (Solo Desktop) --- */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#171717]">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1444723121867-7a241cacace9?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-60 grayscale transition-all duration-500"></div>
-
-        {/* Overlay con el ROJO original sutil */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#DA0037]/40 to-[#171717]/90 mix-blend-multiply transition-all duration-500"></div>
+        {/* Carousel Background */}
+        {["/images/auth/login-bg-1.jpg", "/images/auth/login-bg-2.png"].map((img, idx) => (
+          <div
+            key={img}
+            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out ${idx === currentImage ? "opacity-100" : "opacity-0"
+              }`}
+            style={{ backgroundImage: `url('${img}')` }}
+          >
+            {/* Overlay with subtle RED mix */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#DA0037]/40 to-[#171717]/90 mix-blend-multiply"></div>
+          </div>
+        ))}
 
         <div className="relative z-10 w-full h-full flex flex-col justify-between p-16 text-[#EDEDED]">
           <div>

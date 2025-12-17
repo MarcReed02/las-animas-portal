@@ -6,9 +6,11 @@ import { useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
   Search, MapPin, ArrowUpRight, Clock, Phone,
-  Instagram, Facebook, Globe, Music, MessageCircle, Twitter,
+  Instagram, Facebook, Globe, MessageCircle, Twitter,
   ChevronDown, Filter, X, RefreshCcw, Home, Sun, Moon
 } from 'lucide-react';
+import { FaTiktok } from "react-icons/fa";
+
 import { slugify } from '@/lib/utils';
 
 
@@ -387,7 +389,7 @@ const CommerceViewModern = ({ listings, categoryGroups }: { listings: Listing[],
                       )}
                       {biz.socials.tiktok && (
                         <a href={biz.socials.tiktok} target="_blank" rel="noopener noreferrer" className={`p-2 rounded-full bg-[#f0f0f0] text-[#666] dark:bg-[#2a2a2a] dark:text-[#888] hover:text-white hover:bg-black hover:shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all duration-300 hover:scale-125 hover:-translate-y-1 shadow-sm hover:shadow-md`} title="TikTok">
-                          <Music size={18} />
+                          <FaTiktok size={18} />
                         </a>
                       )}
                       {biz.socials.twitter && (

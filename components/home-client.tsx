@@ -73,6 +73,7 @@ type NewsItem = {
 import { useTheme } from 'next-themes';
 import NavbarNew from './navbar-new';
 import Footer from './footer';
+import NewsSection from './news-section';
 
 // ... (imports)
 
@@ -103,16 +104,16 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
   // --- DATOS ---
   const heroImages = [
     {
-      url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80",
-      alt: "Vista nocturna del barrio"
+      url: "/images/home/hero-1.png",
+      alt: "Vista aérea de Las Ánimas"
     },
     {
-      url: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80",
-      alt: "Gastronomía local"
+      url: "/images/home/hero-2.png",
+      alt: "Parque y áreas verdes"
     },
     {
-      url: "https://images.unsplash.com/photo-1569388330292-79cc1ec67270?auto=format&fit=crop&q=80",
-      alt: "Eventos comunitarios"
+      url: "/images/home/hero-3.jpg",
+      alt: "Calles del barrio"
     }
   ];
 
@@ -156,15 +157,15 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
       status: "En Ejecución",
       progress: 75,
       milestone: "Instalación de luminarias finalizada",
-      image: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?auto=format&fit=crop&q=80"
+      image: "https://upload.wikimedia.org/wikipedia/commons/4/4e/Puente_de_Las_%C3%81nimas_03.jpg"
     },
     {
       id: 2,
-      title: "Mejoramiento Plaza Central",
+      title: "Mejoramiento Costanera",
       status: "Planificación",
       progress: 20,
       milestone: "Aprobación de diseño arquitectónico",
-      image: "https://images.unsplash.com/photo-1496564203457-11bb12075d90?auto=format&fit=crop&q=80"
+      image: "https://upload.wikimedia.org/wikipedia/commons/2/23/R%C3%ADo_Calle_Calle%2C_Valdivia._Sur_de_Chile.jpg"
     }
   ];
 
@@ -265,89 +266,14 @@ export default function HomeClient({ newsItems }: { newsItems: NewsItem[] }) {
         </div>
       </header>
 
-      {/* --- AGENDA DEL MES --- */}
-      <section className={`pt-20 pb-20 px-4 sm:px-6 lg:px-8 relative`}>
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-            <div>
-              <h2 className={`text-sm font-bold tracking-widest uppercase mb-2 ${accentText}`}>
-                Actividades y Eventos
-              </h2>
-              <h3 className={`text-3xl md:text-4xl font-black tracking-tight ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
-                Agenda del Mes
-              </h3>
-            </div>
-            <button className={`flex items-center gap-2 text-sm font-bold hover:gap-3 transition-all ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
-              VER CALENDARIO COMPLETO <ArrowRight size={16} className="text-[#DA0037]" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {agendaItems.length > 0 ? (
-              agendaItems.map((item) => (
-                <article
-                  key={item.id}
-                  className={`group relative rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer ${surfaceClass}`}
-                >
-                  <div className="relative h-48 overflow-hidden">
-                    {/* Imagen con Zoom al Hover */}
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className={`absolute top-4 right-4 backdrop-blur-md border px-3 py-1 rounded-full text-xs font-bold uppercase ${isDarkMode ? 'bg-[#171717]/80 border-[#444444] text-[#EDEDED]' : 'bg-white/80 border-[#EDEDED] text-[#171717]'}`}>
-                      {item.category}
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex flex-col flex-1">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`flex flex-col items-center justify-center p-2 rounded-lg border w-14 h-14 ${isDarkMode ? 'bg-[#171717] border-[#444444] text-[#EDEDED]' : 'bg-white border-[#EDEDED] text-[#171717]'}`}>
-                        <span className="text-xs font-bold uppercase">{item.date.split(' ')[1]}</span>
-                        <span className="text-xl font-black">{item.date.split(' ')[0]}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className={`block text-xs font-medium mb-1 ${textTertiary}`}>{item.price}</span>
-                      </div>
-                    </div>
-                    <h4 className={`text-lg font-bold mb-2 leading-tight group-hover:text-[#DA0037] transition-colors ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
-                      {item.title}
-                    </h4>
-                    {item.description && (
-                      <p className={`text-sm mb-4 line-clamp-3 ${textSecondary}`}>
-                        {item.description}
-                      </p>
-                    )}
-                    <div className="space-y-2 mt-auto">
-                      <div className={`flex items-center gap-2 text-xs ${textSecondary}`}>
-                        <Clock size={14} className={accentText} /> {item.time}
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ))
-            ) : (
-              <div className={`col-span-full flex flex-col items-center justify-center py-16 text-center border-2 border-dashed rounded-2xl ${isDarkMode ? 'border-[#444444] bg-[#171717]/50' : 'border-[#EDEDED] bg-gray-50'}`}>
-                <Calendar size={48} className={`mb-4 ${isDarkMode ? 'text-[#444444]' : 'text-gray-300'}`} />
-                <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-[#EDEDED]' : 'text-[#171717]'}`}>
-                  No hay actividades programadas
-                </h3>
-                <p className={`max-w-md ${textSecondary}`}>
-                  Por el momento no tenemos eventos o noticias para mostrar. ¡Vuelve pronto para enterarte de las novedades del barrio!
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      <NewsSection items={newsItems} />
 
 
 
       {/* --- CTA: ANIMACIONES PROFESIONALES --- */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80" className="w-full h-full object-cover opacity-20 filter grayscale" alt="Comercio" />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/R%C3%ADo_Calle_Calle%2C_Valdivia._Sur_de_Chile.jpg" className="w-full h-full object-cover opacity-20 filter grayscale" alt="Comercio" />
           <div className={`absolute inset-0 ${isDarkMode ? 'bg-[#DA0037]/90' : 'bg-[#DA0037]/95'}`}></div>
         </div>
 

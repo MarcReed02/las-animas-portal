@@ -70,14 +70,14 @@ const DashboardInput = ({ label, value, onChange, icon: Icon, type = "text", ful
     <div className={`relative flex items-center rounded-xl border transition-all duration-500 group
       ${disabled && !isEditing
         ? 'bg-transparent border-transparent px-0'
-        : 'bg-[#27272a] border-[#3f3f46] hover:border-[#52525b] focus-within:border-[#DA0037] focus-within:bg-[#2d2d30] focus-within:shadow-[0_0_15px_rgba(218,0,55,0.15)] px-4'
+        : 'bg-white dark:bg-[#27272a] border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-[#52525b] focus-within:border-[#DA0037] focus-within:bg-white dark:focus-within:bg-[#2d2d30] focus-within:shadow-[0_0_15px_rgba(218,0,55,0.15)] px-4'
       }`}>
       <input
         type={type}
         value={value || ''}
         onChange={onChange}
         disabled={!isEditing}
-        className={`w-full bg-transparent text-[#f4f4f5] text-sm py-3 focus:outline-none placeholder-[#52525b] font-medium transition-all
+        className={`w-full bg-transparent text-gray-900 dark:text-[#f4f4f5] text-sm py-3 focus:outline-none placeholder-gray-400 dark:placeholder-[#52525b] font-medium transition-all
           ${!isEditing ? 'pl-0 text-base' : ''}
         `}
       />
@@ -87,7 +87,7 @@ const DashboardInput = ({ label, value, onChange, icon: Icon, type = "text", ful
         </div>
       )}
     </div>
-    {!isEditing && <div className="h-px bg-[#27272a] w-full origin-left transform transition-transform duration-700 scale-x-100"></div>}
+    {!isEditing && <div className="h-px bg-gray-200 dark:bg-[#27272a] w-full origin-left transform transition-transform duration-700 scale-x-100"></div>}
   </div>
 );
 
@@ -127,21 +127,21 @@ const TimePicker = ({ value, onChange, disabled, label }: any) => {
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between bg-[#202023] border border-[#27272a] rounded-2xl px-6 py-5 transition-all duration-300
+        className={`w-full flex items-center justify-between bg-white dark:bg-[#202023] border border-gray-200 dark:border-[#27272a] rounded-2xl px-6 py-5 transition-all duration-300
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#DA0037] hover:shadow-[0_0_15px_rgba(218,0,55,0.1)] hover:-translate-y-1'}
           ${isOpen ? 'border-[#DA0037] ring-1 ring-[#DA0037]' : ''}
         `}
       >
-        <span className="text-3xl text-white font-mono font-light tracking-wide">
-          {hours12.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')} <span className="text-lg text-[#71717a] font-bold ml-1">{period}</span>
+        <span className="text-3xl text-gray-900 dark:text-white font-mono font-light tracking-wide">
+          {hours12.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')} <span className="text-lg text-gray-500 dark:text-[#71717a] font-bold ml-1">{period}</span>
         </span>
-        <Clock size={20} className={`transition-colors ${isOpen ? 'text-[#DA0037]' : 'text-[#52525b]'}`} />
+        <Clock size={20} className={`transition-colors ${isOpen ? 'text-[#DA0037]' : 'text-gray-400 dark:text-[#52525b]'}`} />
       </button>
 
       <div
         className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'}`}
       >
-        <div className="overflow-hidden min-h-0 bg-[#18181b] border border-[#27272a] rounded-xl flex h-64 ring-1 ring-white/10">
+        <div className="overflow-hidden min-h-0 bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-xl flex h-64 ring-1 ring-black/5 dark:ring-white/10">
           {/* Hours */}
           <div className="flex-1 overflow-y-auto border-r border-[#27272a] scrollbar-hide">
             <div className="sticky top-0 bg-[#18181b] text-[10px] text-center py-2 text-[#71717a] font-bold uppercase border-b border-[#27272a] z-10">Hora</div>
@@ -407,7 +407,7 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
   const changesList = getChanges();
 
   return (
-    <div className="min-h-screen bg-[#121212] font-sans text-[#f4f4f5] flex flex-col overflow-x-hidden selection:bg-[#DA0037] selection:text-white">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#121212] font-sans text-gray-900 dark:text-[#f4f4f5] flex flex-col overflow-x-hidden selection:bg-[#DA0037] selection:text-white transition-colors duration-500">
 
       {/* --- GLOBAL NAVBAR --- */}
       <NavbarLogged user={user} />
@@ -418,9 +418,9 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
         {/* HEADER CONTEXTUAL */}
         <div className={`flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#27272a] pb-8 transition-all duration-1000 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight">Configuración del Negocio</h1>
-            <p className="text-[#a1a1aa] max-w-xl text-lg leading-relaxed">
-              Administra la información pública de <span className="text-white font-semibold relative inline-block after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-px after:bg-[#DA0037] after:scale-x-0 after:origin-left after:transition-transform after:duration-500 hover:after:scale-x-100 cursor-default">{businessData.name}</span>.
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight">Configuración del Negocio</h1>
+            <p className="text-gray-500 dark:text-[#a1a1aa] max-w-xl text-lg leading-relaxed">
+              Administra la información pública de <span className="text-gray-900 dark:text-white font-semibold relative inline-block after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-px after:bg-[#DA0037] after:scale-x-0 after:origin-left after:transition-transform after:duration-500 hover:after:scale-x-100 cursor-default">{businessData.name}</span>.
             </p>
           </div>
           <button
@@ -428,7 +428,7 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
             className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300 shadow-lg hover:-translate-y-1 active:scale-95
               ${isEditing
                 ? 'bg-[#DA0037] text-white shadow-[#DA0037]/30 hover:bg-[#b0002c]'
-                : 'bg-[#27272a] text-[#f4f4f5] hover:bg-[#333] border border-[#3f3f46] hover:border-[#71717a]'
+                : 'bg-white dark:bg-[#27272a] text-gray-700 dark:text-[#f4f4f5] hover:bg-gray-50 dark:hover:bg-[#333] border border-gray-200 dark:border-[#3f3f46] hover:border-gray-300 dark:hover:border-[#71717a]'
               }`}
           >
             {isEditing ? <Save size={18} className="animate-bounce-in" /> : <Edit3 size={18} />}
@@ -439,13 +439,13 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
         {/* 1. FICHA PÚBLICA */}
         <section className={`space-y-8 transition-all duration-1000 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#27272a] rounded-lg text-[#DA0037] shadow-lg shadow-[#DA0037]/10">
+            <div className="p-2 bg-white dark:bg-[#27272a] rounded-lg text-[#DA0037] shadow-lg shadow-[#DA0037]/10 border border-gray-100 dark:border-transparent">
               <Store size={24} />
             </div>
-            <h2 className="text-xl font-bold text-white">Información General</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Información General</h2>
           </div>
 
-          <div className="bg-[#18181b] border border-[#27272a] rounded-3xl p-8 shadow-2xl hover:shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-shadow duration-500">
+          <div className="bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl p-8 shadow-xl hover:shadow-2xl dark:shadow-2xl transition-all duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
               {/* Identidad */}
               <div className="lg:col-span-7 space-y-6">
@@ -464,8 +464,8 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
                               onClick={() => setBusinessData({ ...businessData, category: group.name, subcategory: '' })}
                               className={`relative overflow-hidden p-3 rounded-xl border text-left text-xs font-medium transition-all duration-300 flex flex-col justify-between min-h-[70px] group
                                 ${businessData.category === group.name
-                                  ? 'bg-[#27272a] border-[#DA0037] text-white shadow-[0_0_15px_rgba(218,0,55,0.15)] scale-[1.02]'
-                                  : 'bg-[#202023] border-transparent text-[#71717a] hover:bg-[#27272a] hover:text-[#f4f4f5]'}`}
+                                  ? 'bg-gray-900 dark:bg-[#27272a] border-[#DA0037] text-white shadow-[0_0_15px_rgba(218,0,55,0.15)] scale-[1.02]'
+                                  : 'bg-white dark:bg-[#202023] border-gray-200 dark:border-transparent text-gray-600 dark:text-[#71717a] hover:bg-gray-50 dark:hover:bg-[#27272a] hover:text-gray-900 dark:hover:text-[#f4f4f5] hover:border-gray-300'}`}
                             >
                               <span className={`relative z-10 transition-transform duration-300 ${businessData.category === group.name ? 'translate-x-1' : ''}`}>{group.name}</span>
                               {businessData.category === group.name && (
@@ -477,7 +477,7 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
                           ))}
                         </div>
                       ) : (
-                        <div className="w-full bg-[#27272a] border border-[#3f3f46] rounded-xl px-4 py-3 text-sm text-[#f4f4f5] font-medium">
+                        <div className="w-full bg-white dark:bg-[#27272a] border border-gray-200 dark:border-[#3f3f46] rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-[#f4f4f5] font-medium">
                           {businessData.category || "Sin categoría"}
                         </div>
                       )}
@@ -494,8 +494,8 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
                               onClick={() => setBusinessData({ ...businessData, subcategory: sub })}
                               className={`px-3 py-1.5 rounded-lg text-xs transition-all duration-200 border font-medium
                                 ${businessData.subcategory === sub
-                                  ? 'bg-[#f4f4f5] text-[#18181b] border-[#DA0037] shadow-lg scale-105'
-                                  : 'bg-[#27272a] text-[#a1a1aa] border-[#3f3f46] hover:text-white hover:border-[#52525b]'
+                                  ? 'bg-gray-100 dark:bg-[#f4f4f5] text-gray-900 dark:text-[#18181b] border-[#DA0037] shadow-md scale-105'
+                                  : 'bg-white dark:bg-[#27272a] text-gray-500 dark:text-[#a1a1aa] border-gray-200 dark:border-[#3f3f46] hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-[#52525b]'
                                 }`}
                             >
                               {sub}
@@ -503,7 +503,7 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
                           ))}
                         </div>
                       ) : (
-                        <div className="w-full bg-[#27272a] border border-[#3f3f46] rounded-xl px-4 py-3 text-sm text-[#f4f4f5] font-medium">
+                        <div className="w-full bg-white dark:bg-[#27272a] border border-gray-200 dark:border-[#3f3f46] rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-[#f4f4f5] font-medium">
                           {businessData.subcategory || "Sin subcategoría"}
                         </div>
                       )}
@@ -512,29 +512,29 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
                 </div>
                 <div className={`transition-all duration-700 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                   <label className="text-[10px] font-bold text-[#71717a] uppercase tracking-wider pl-1 block mb-2 transition-colors group-focus-within:text-[#DA0037]">Descripción</label>
-                  <div className={`relative rounded-xl border transition-all duration-300 ${!isEditing ? 'border-transparent' : 'border-[#3f3f46] bg-[#27272a] focus-within:border-[#DA0037] focus-within:bg-[#2d2d30]'}`}>
+                  <div className={`relative rounded-xl border transition-all duration-300 ${!isEditing ? 'border-transparent' : 'border-gray-200 dark:border-[#3f3f46] bg-white dark:bg-[#27272a] focus-within:border-[#DA0037] focus-within:bg-white dark:focus-within:bg-[#2d2d30]'}`}>
                     <textarea
                       disabled={!isEditing}
                       value={businessData.description}
                       onChange={(e) => setBusinessData({ ...businessData, description: e.target.value })}
                       rows={4}
-                      className="w-full rounded-xl p-4 text-sm text-[#f4f4f5] focus:outline-none bg-transparent resize-none leading-relaxed transition-colors"
+                      className="w-full rounded-xl p-4 text-sm text-gray-900 dark:text-[#f4f4f5] focus:outline-none bg-transparent resize-none leading-relaxed transition-colors"
                     />
                   </div>
-                  {!isEditing && <div className="h-px bg-[#27272a] w-full"></div>}
+                  {!isEditing && <div className="h-px bg-gray-200 dark:bg-[#27272a] w-full"></div>}
                 </div>
                 <DashboardInput label="Dirección Física" value={businessData.address} onChange={(e: any) => setBusinessData({ ...businessData, address: e.target.value })} icon={MapPin} fullWidth delay={550} isEditing={isEditing} mounted={mounted} />
               </div>
 
               {/* Divisor */}
-              <div className="hidden lg:block w-px bg-[#27272a]"></div>
+              <div className="hidden lg:block w-px bg-gray-200 dark:bg-[#27272a]"></div>
 
               {/* Contacto */}
               <div className="lg:col-span-4 space-y-5">
                 <DashboardInput label="Teléfono" value={businessData.phone} onChange={(e: any) => setBusinessData({ ...businessData, phone: e.target.value })} icon={Phone} delay={600} isEditing={isEditing} mounted={mounted} />
                 <DashboardInput label="WhatsApp" value={businessData.whatsapp} onChange={(e: any) => setBusinessData({ ...businessData, whatsapp: e.target.value })} icon={Smartphone} delay={650} isEditing={isEditing} mounted={mounted} />
                 <DashboardInput label="Sitio Web" value={businessData.website} onChange={(e: any) => setBusinessData({ ...businessData, website: e.target.value })} icon={Globe} delay={700} isEditing={isEditing} mounted={mounted} />
-                <div className="h-px bg-[#27272a] w-full my-2"></div>
+                <div className="h-px bg-gray-200 dark:bg-[#27272a] w-full my-2"></div>
 
                 {/* Redes Sociales - Lista Vertical */}
                 <div className="grid grid-cols-1 gap-4">
@@ -553,13 +553,13 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
           <div className="flex items-center gap-3">
             <div className="h-8 w-1 bg-[#DA0037] rounded-full shadow-[0_0_10px_#DA0037]"></div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Horarios de Atención</h2>
-              <p className="text-sm text-[#71717a]">Selecciona los días que abres y define tu horario.</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Horarios de Atención</h2>
+              <p className="text-sm text-gray-500 dark:text-[#71717a]">Selecciona los días que abres y define tu horario.</p>
             </div>
           </div>
 
           <div className="relative group">
-            <div className="absolute inset-0 bg-[#18181b] border border-[#27272a] rounded-3xl shadow-2xl overflow-hidden group-hover:border-[#333] transition-colors pointer-events-none">
+            <div className="absolute inset-0 bg-white dark:bg-[#18181b] border border-gray-200 dark:border-[#27272a] rounded-3xl shadow-xl hover:shadow-2xl dark:shadow-2xl overflow-hidden group-hover:border-gray-300 dark:group-hover:border-[#333] transition-colors pointer-events-none">
               <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-[#DA0037] opacity-[0.03] blur-[100px] rounded-full group-hover:opacity-[0.05] transition-opacity duration-700"></div>
             </div>
 
@@ -583,7 +583,7 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
                         ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}
                         ${isSelected
                             ? 'bg-[#DA0037] text-white shadow-[0_0_25px_rgba(218,0,55,0.5)] scale-110 border-2 border-[#ff4d6d] z-10'
-                            : 'bg-[#202023] text-[#52525b] border-2 border-[#27272a] hover:border-[#3f3f46] hover:text-[#a1a1aa]'
+                            : 'bg-white dark:bg-[#202023] text-gray-500 dark:text-[#52525b] border-2 border-gray-200 dark:border-[#27272a] hover:border-gray-300 dark:hover:border-[#3f3f46] hover:text-gray-900 dark:hover:text-[#a1a1aa]'
                           }
                         ${!isEditing && !isSelected ? 'opacity-30 grayscale' : ''}
                       `}
@@ -597,8 +597,8 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
 
               <div className={`transition-all duration-700 ease-in-out ${selectedDays.length > 0 ? 'opacity-100 translate-y-0' : 'opacity-20 translate-y-4 grayscale pointer-events-none'}`}>
                 <div className="text-center mb-8 relative">
-                  <span className="text-xs font-bold text-[#52525b] uppercase tracking-widest bg-[#18181b] px-4 relative z-10">Definir Horario</span>
-                  <div className="h-px bg-[#27272a] absolute top-1/2 left-0 w-full -z-0"></div>
+                  <span className="text-xs font-bold text-gray-500 dark:text-[#52525b] uppercase tracking-widest bg-white dark:bg-[#18181b] px-4 relative z-10">Definir Horario</span>
+                  <div className="h-px bg-gray-200 dark:bg-[#27272a] absolute top-1/2 left-0 w-full -z-0"></div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
@@ -633,12 +633,12 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
         <section className={`space-y-8 pb-12 transition-all duration-1000 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="flex justify-between items-end">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#27272a] rounded-lg text-[#DA0037] shadow-lg shadow-[#DA0037]/10">
+              <div className="p-2 bg-white dark:bg-[#27272a] rounded-lg text-[#DA0037] shadow-lg shadow-[#DA0037]/10 border border-gray-100 dark:border-transparent">
                 <ImageIcon size={24} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Galería del Negocio</h2>
-                <p className="text-sm text-[#71717a]">Imágenes visibles en tu perfil.</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Galería del Negocio</h2>
+                <p className="text-sm text-gray-500 dark:text-[#71717a]">Imágenes visibles en tu perfil.</p>
               </div>
             </div>
             {isEditing && (
@@ -668,7 +668,7 @@ export default function BusinessDashboardClient({ initialData, user, categoryGro
             {businessData.photos.map((photo, idx) => (
               <div
                 key={photo.id}
-                className={`relative aspect-square rounded-3xl overflow-hidden group bg-[#202023] border border-[#27272a] shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1
+                className={`relative aspect-square rounded-3xl overflow-hidden group bg-white dark:bg-[#202023] border border-gray-200 dark:border-[#27272a] shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1
                   ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}
                 `}
                 style={{ transitionDelay: `${idx * 100}ms` }}

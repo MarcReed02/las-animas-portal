@@ -41,7 +41,6 @@ const nav = [
   { href: "/admin", label: "Solicitudes", icon: LayoutDashboard },
   { href: "/admin/noticias", label: "Noticias", icon: FileText },
   { href: "/admin/usuarios", label: "Gestión Usuarios", icon: Users },
-  { href: "/admin/ajustes", label: "Ajustes", icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
