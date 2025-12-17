@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import ComerciosClient from "@/components/comercios-client";
 import NavbarNew from "@/components/navbar-new";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
@@ -66,7 +67,9 @@ export default async function ComerciosPage() {
   return (
     <div className="min-h-screen bg-[#171717] pt-20">
       <NavbarNew />
-      <ComerciosClient listings={listings} categoryGroups={categoryGroups} />
+      <Suspense fallback={<div>Cargando comercios...</div>}>
+        <ComerciosClient listings={listings} categoryGroups={categoryGroups} />
+      </Suspense>
     </div>
   );
 }
