@@ -24,7 +24,7 @@ export default async function ComerciosPage() {
     .select(
       "id,titulo,descripcion,categoria_principal,subcategoria,direccion,horario,mostrar_telefono,telefono_snapshot,instagram,facebook,whatsapp,tiktok,contacto_twitter,contacto_web,anuncio_solicitud_imagenes(url,orden)",
     )
-    .eq("estado", "approved")
+    .eq("estado", "aprobado")
     .order("created_at", { ascending: false });
 
   if (error) {
