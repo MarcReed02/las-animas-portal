@@ -64,9 +64,7 @@ const NewsSection = ({ items = [] }: { items?: NewsItem[] }) => {
             <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Novedades del Barrio</h2>
             <p className="text-gray-600 dark:text-gray-400">Mantente al día con las actividades, ferias y reuniones de Las Ánimas.</p>
           </div>
-          <button className="hidden md:flex items-center gap-2 text-[#DA0037] font-bold hover:text-[#b3002d] dark:hover:text-white transition-colors group">
-            Ver todas las noticias <ArrowUpRight className="w-5 h-5 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-          </button>
+
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -112,11 +110,7 @@ const NewsSection = ({ items = [] }: { items?: NewsItem[] }) => {
 
         </div>
 
-        <div className="mt-8 text-center md:hidden">
-          <button className="text-[#DA0037] font-bold hover:text-[#b3002d] dark:hover:text-white transition-colors flex items-center justify-center w-full gap-2 py-3 border border-[#DA0037] rounded-lg">
-            Ver todas las noticias <ArrowUpRight className="w-5 h-5" />
-          </button>
-        </div>
+
       </section>
 
     </div>
